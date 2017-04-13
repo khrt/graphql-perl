@@ -83,10 +83,9 @@ sub TokenKind { 'GraphQL::Language::Token' }
 sub parse {
     my ($source, $options) = @_;
     my $source_obj =
-        # check if it's a string
-        $source & ~$source
-        ? GraphQL::Language::Source->new(body => $source)
-        : $source;
+        ref($source)
+        ? $source
+        : GraphQL::Language::Source->new(body => $source);
 
     my $lexer =
         GraphQL::Language::Lexer->new(source => $source_obj, options => $options);

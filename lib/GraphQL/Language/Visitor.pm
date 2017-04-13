@@ -7,7 +7,7 @@ use feature 'say';
 use Carp qw/longmess/;
 use DDP {
     indent => 2,
-    max_depth => 4,
+    max_depth => 3,
     index => 0,
     class => { internals => 0, show_methods => 'none', },
     caller_info => 0,
@@ -65,9 +65,7 @@ use constant QUERY_DOCUMENT_KEYS => {
 
 use constant {
     BREAK => {},
-    FALSE => {},
-    NULL  => 0,
-    TRUE  => {},
+    NULL  => {},
 };
 
 use Exporter 'import';
@@ -245,8 +243,10 @@ NEXT:
                 $result = $visit_fn->($visitor, $node, $key, $parent, $path, $ancestors);
                 goto END if $result && $result == BREAK;
 
+                # TODO: Perlify all this undefined, null, true, and false
+
                 # if (result === false)
-                if ($result && $result == FALSE) {
+                if (defined($result) && !$result) {
                     if (!$is_leaving) {
                         pop @$path;
                         goto NEXT;
@@ -254,7 +254,7 @@ NEXT:
                 }
                 # else if (result !== undefined)
                 elsif (defined($result)) {
-                    push @$edits, [$key, $result];
+                    push @$edits, [$key, $result == NULL ? undef : $result];
 
                     if (!$is_leaving) {
                         if (is_node($result)) {
@@ -317,7 +317,7 @@ sub is_node {
 # If a prior visitor edits a node, no following visitors will see that node.
 sub visit_in_parallel {
     my $visitors = shift;
-    my @skipping = (undef) x scalar($visitors);
+    my @skipping = (undef) x scalar(@$visitors);
 
     return {
         enter => sub {
@@ -327,20 +327,24 @@ sub visit_in_parallel {
             for (my $i = 0; $i < scalar(@$visitors); $i++) {
                 if (!$skipping[$i]) {
                     my $fn = get_visit_fn($visitors->[$i], $node->{kind}, undef);
-                    next unless $fn;
-
-                    my $result = $fn->($visitors->[$i], @_);
-                    if (defined($result) && !$result) {
-                        $skipping[$i] = $node;
-                    }
-                    elsif ($result && $result == BREAK) {
-                        $skipping[$i] = BREAK;
-                    }
-                    elsif (!defined($result)) {
-                        return $result;
+                    if ($fn) {
+                        my $result = $fn->($visitors->[$i], @_);
+                        # if (result === false)
+                        if (defined($result) && !$result) {
+                            $skipping[$i] = $node;
+                        }
+                        elsif ($result && $result == BREAK) {
+                            $skipping[$i] = BREAK;
+                        }
+                        # else if (result !== undefined)
+                        elsif (defined($result)) {
+                            return $result;
+                        }
                     }
                 }
             }
+
+            return;
         },
         leave => sub {
             my $visitor = shift;
@@ -358,11 +362,13 @@ sub visit_in_parallel {
                             return $result;
                         }
                     }
-                    elsif ($skipping[$i] = $node) {
-                        $skipping[$i] = undef;
-                    }
+                }
+                elsif ($skipping[$i] == $node) {
+                    $skipping[$i] = undef;
                 }
             }
+
+            return;
         },
     };
 }

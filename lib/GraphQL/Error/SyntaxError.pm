@@ -3,8 +3,6 @@ package GraphQL::Error::SyntaxError;
 use strict;
 use warnings;
 
-use DDP;
-
 use GraphQL::Language::Location qw/get_location/;
 
 use Exporter 'import';
