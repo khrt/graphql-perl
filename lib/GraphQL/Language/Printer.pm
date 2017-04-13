@@ -11,25 +11,25 @@ use GraphQL::Language::Visitor qw/visit/;
 
 my %ast_reducer = (
     Name => sub { $_[1]->{value} },
-    Variable => sub { '$' . $_[1]->{value} },
+    Variable => sub { '$' . $_[1]->{name} },
 
     # Document
 
-    Document => sub { mjoin("\n\n", $_[1]->{definitions}) },
+    Document => sub { mjoin("\n\n", @{ $_[1]->{definitions} }) . "\n" },
 
     OperationDefinition => sub {
         my ($self, $node) = @_;
         my $op = $node->{operation};
         my $name = $node->{name};
-        my $var_defs = wrap('(', mjoin(', ', $node->{variable_definitions}), ')');
-        my $directives = mjoin(' ', $node->{directives});
+        my $var_defs = wrap('(', mjoin(', ', @{ $node->{variable_definitions} }), ')');
+        my $directives = mjoin(' ', @{ $node->{directives} });
         my $selection_set = $node->{selection_set};
 
         # Anonymous queries with no directives or variable defintions can
         # use the query short form.
-        return !$name && !$directives && !$var_defs && $op == 'query'
-        ? $selection_set
-        : mjoin(' ', $op, mjoin('', $name, $var_defs), $directives, $selection_set);
+        return !$name && !$directives && !$var_defs && $op eq 'query'
+            ? $selection_set
+            : mjoin(' ', $op, mjoin('', $name, $var_defs), $directives, $selection_set);
     },
 
     VariableDefinition => sub {
@@ -37,7 +37,7 @@ my %ast_reducer = (
         return $node->{variable} . ': ' . $node->{type} . wrap(' = ', $node->{default_value});
     },
 
-    SelectionSet => sub { block($_[1]->{selections}) },
+    SelectionSet => sub { block(@{ $_[1]->{selections} }) },
 
     Field => sub {
         my ($self, $node) = @_;
@@ -45,12 +45,12 @@ my %ast_reducer = (
         my $name = $node->{name};
         my $args = $node->{arguments};
         my $directives = $node->{directives};
-        my $selectionSet = $node->{selectionSet};
+        my $selection_set = $node->{selection_set};
 
         return mjoin(
             ' ',
-            wrap('', $alias, ' => ') . $name . wrap('(', mjoin(', ', $args), ')'),
-            mjoin(' ', $directives), $selectionSet
+            wrap('', $alias, ': ') . $name . wrap('(', mjoin(', ', @$args), ')'),
+            mjoin(' ', @$directives), $selection_set
         );
     },
 
@@ -67,32 +67,32 @@ my %ast_reducer = (
         my ($self, $node) = @_;
         my $name = $node->{name};
         my $directives = $node->{directives};
-        return '...' . $name . wrap(' ', mjoin(' ', $directives));
+        return '...' . $name . wrap(' ', mjoin(' ', @$directives));
     },
 
     InlineFragment => sub {
         my ($self, $node) = @_;
-        my $typeCondition = $node->{typeCondition};
+        my $type_condition = $node->{type_condition};
         my $directives = $node->{directives};
-        my $selectionSet = $node->{selectionSet};
+        my $selection_set = $node->{selection_set};
         return mjoin(
             ' ', '...',
-            wrap('on ', $typeCondition),
-            mjoin(' ', $directives),
-            $selectionSet
+            wrap('on ', $type_condition),
+            mjoin(' ', @$directives),
+            $selection_set
         );
     },
 
     FragmentDefinition => sub {
         my ($self, $node) = @_;
         my $name = $node->{name};
-        my $typeCondition = $node->{typeCondition};
+        my $type_condition = $node->{type_condition};
         my $directives = $node->{directives};
-        my $selectionSet = $node->{selectionSet};
+        my $selection_set = $node->{selection_set};
         return
-              "fragment $name on $typeCondition "
-            . wrap('', mjoin(' ', $directives), ' ')
-            . $selectionSet;
+              "fragment $name on $type_condition "
+            . wrap('', mjoin(' ', @$directives), ' ')
+            . $selection_set;
     },
 
     # Value
@@ -113,7 +113,7 @@ my %ast_reducer = (
     BooleanValue => sub {
         my ($self, $node) = @_;
         my $value = $node->{value};
-        return stringify($value);
+        return $value ? 'true' : 'false';
     },
     NullValue => sub { 'null' },
     EnumValue => sub {
@@ -123,18 +123,18 @@ my %ast_reducer = (
     ListValue => sub {
         my ($self, $node) = @_;
         my $values = $node->{values};
-        return '[' . mjoin(', ', $values) . ']';
+        return '[' . mjoin(', ', @$values) . ']';
     },
     ObjectValue => sub {
         my ($self, $node) = @_;
         my $fields = $node->{fields};
-        return '{' . mjoin(', ', $fields) . '}';
+        return '{' . mjoin(', ', @$fields) . '}';
     },
     ObjectField => sub {
         my ($self, $node) = @_;
         my $name = $node->{name};
         my $value = $node->{value};
-        return $name . ' => ' . $value;
+        return $name . ': ' . $value;
     },
 
     # Directive
@@ -143,7 +143,7 @@ my %ast_reducer = (
         my ($self, $node) = @_;
         my $name = $node->{name};
         my $args = $node->{arguments};
-        return '@' . $name . wrap('(', mjoin(', ', $args), ')');
+        return '@' . $name . wrap('(', mjoin(', ', @$args), ')');
     },
 
     # Type
@@ -168,22 +168,22 @@ my %ast_reducer = (
     SchemaDefinition => sub {
         my ($self, $node) = @_;
         my $directives = $node->{directives};
-        my $operationTypes = $node->{operationTypes};
-        return mjoin(' ', 'schema', mjoin(' ', $directives), block($operationTypes));
+        my $operation_types = $node->{operation_types};
+        return mjoin(' ', 'schema', mjoin(' ', @$directives), block($operation_types));
     },
 
     OperationTypeDefinition => sub {
         my ($self, $node) = @_;
         my $operation = $node->{operation};
         my $type = $node->{type};
-        return $operation . ' => ' . $type;
+        return $operation . ': ' . $type;
     },
 
     ScalarTypeDefinition => sub {
         my ($self, $node) = @_;
         my $name = $node->{name};
         my $directives = $node->{directives};
-        return mjoin(' ', 'scalar', $name, mjoin(' ', $directives));
+        return mjoin(' ', 'scalar', $name, mjoin(' ', @$directives));
     },
 
     ObjectTypeDefinition => sub {
@@ -194,8 +194,8 @@ my %ast_reducer = (
         my $fields = $node->{fields};
         return mjoin(' ', 'type',
             $name,
-            wrap('implements ', mjoin(', ', $interfaces)),
-            mjoin(' ', $directives),
+            wrap('implements ', mjoin(', ', @$interfaces)),
+            mjoin(' ', @$directives),
             block($fields)
         );
     },
@@ -208,23 +208,23 @@ my %ast_reducer = (
         my $directives = $node->{directives};
         return
               $name
-            . wrap('(', mjoin(', ', $args), ')')
-            . ' => '
+            . wrap('(', mjoin(', ', @$args), ')')
+            . ': '
             . $type
-            . wrap(' ', mjoin(' ', $directives));
+            . wrap(' ', mjoin(' ', @$directives));
     },
 
     InputValueDefinition => sub {
         my ($self, $node) = @_;
         my $name = $node->{name};
         my $type = $node->{type};
-        my $defaultValue = $node->{defaultValue};
+        my $default_value = $node->{default_value};
         my $directives = $node->{directives};
         return mjoin(
             ' ',
-            $name . ' => ' . $type,
-            wrap('= ', $defaultValue),
-            mjoin($directives, ' ')
+            $name . ': ' . $type,
+            wrap('= ', $default_value),
+            mjoin(@$directives, ' ')
         );
     },
 
@@ -237,7 +237,7 @@ my %ast_reducer = (
             ' ',
             'interface',
             $name,
-            mjoin(' ', $directives),
+            mjoin(' ', @$directives),
             block($fields));
     },
 
@@ -250,8 +250,8 @@ my %ast_reducer = (
             ' ',
             'union',
             $name,
-            mjoin(' ', $directives),
-            '= ' . mjoin(' | ', $types)
+            mjoin(' ', @$directives),
+            '= ' . mjoin(' | ', @$types)
         );
     },
 
@@ -263,7 +263,7 @@ my %ast_reducer = (
         return mjoin(' ',
             'enum',
             $name,
-            mjoin(' ', $directives),
+            mjoin(' ', @$directives),
             block($values)
         );
     },
@@ -272,7 +272,7 @@ my %ast_reducer = (
         my ($self, $node) = @_;
         my $name = $node->{name};
         my $directives = $node->{directives};
-        return mjoin(' ', $name, mjoin(' ', $directives)),
+        return mjoin(' ', $name, mjoin(' ', @$directives)),
     },
 
     InputObjectTypeDefinition => sub {
@@ -284,7 +284,7 @@ my %ast_reducer = (
             ' ',
             'input',
             $name,
-            mjoin(' ', $directives),
+            mjoin(' ', @$directives),
             block($fields)
         ),
     },
@@ -300,8 +300,8 @@ my %ast_reducer = (
         my $name = $node->{name};
         my $args = $node->{arguments};
         my $locations = $node->{locations};
-        return 'directive @' . $name . wrap('(', mjoin(', ', $args), ')')
-            . ' on ' . mjoin(' | ', $locations);
+        return 'directive @' . $name . wrap('(', mjoin(', ', @$args), ')')
+            . ' on ' . mjoin(' | ', @$locations);
     },
 );
 
@@ -310,10 +310,9 @@ my %ast_reducer = (
 # print all items together separated by separator if provided
 #
 sub mjoin {
-    my ($separator, @maybeArray) = @_;
-    return @maybeArray
-        #? @maybeArray.filter(x => x).join($separator || '')
-        ? join($separator || '', @maybeArray)
+    my ($separator, @maybe_array) = @_;
+    return @maybe_array
+        ? join($separator || '', grep { $_ } @maybe_array)
         : '';
 }
 
@@ -333,17 +332,23 @@ sub block {
 # print an empty string.
 #
 sub wrap {
-    my ($start, $maybeString, $end) = @_;
-    return $maybeString
-        ? $start . $maybeString . ($end || '')
+    my ($start, $maybe_string, $end) = @_;
+    return $maybe_string
+        ? $start . $maybe_string . ($end || '')
         : '';
 }
 
 sub indent {
-    my $maybeString = shift;
-    return unless $maybeString;
-    $maybeString =~ s/\n/\n    /g;
-    return $maybeString;
+    my $maybe_string = shift;
+    return unless $maybe_string;
+    $maybe_string =~ s/\n/\n  /g;
+    return $maybe_string;
+}
+
+sub stringify {
+    my $string = shift;
+    $string =~ s/"/\\"/g;
+    return qq/"$string"/;
 }
 
 sub print_doc {

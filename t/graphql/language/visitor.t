@@ -1098,7 +1098,7 @@ subtest 'visit_in_parallel' => sub {
     };
 };
 
-#subtest 'visit_with_type_info' => sub {
+subtest 'visit_with_type_info' => sub {
 #    subtest 'maintains type info during visit' => sub {
 #        my @visited;
 #        my $type_info = new TypeInfo(testSchema);
@@ -1292,6 +1292,6 @@ subtest 'visit_in_parallel' => sub {
 #            [ 'leave', 'Document', NULL, NULL, NULL, NULL ]
 #        ];
 #    };
-#};
+};
 
  done_testing;

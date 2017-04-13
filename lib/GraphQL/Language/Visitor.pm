@@ -5,6 +5,7 @@ use warnings;
 
 use feature 'say';
 use Carp qw/longmess/;
+use Data::Dumper;
 use DDP {
     indent => 2,
     max_depth => 3,
@@ -71,7 +72,7 @@ use constant {
 use Exporter 'import';
 
 our @EXPORT_OK = (qw/
-    QUERY_DOCUMENT_KEYS BREAK FALSE NULL TRUE
+    QUERY_DOCUMENT_KEYS BREAK NULL
     visit visit_in_parallel visit_with_typeinfo
 /);
 
@@ -234,14 +235,17 @@ NEXT:
         my $result;
         if (ref $node ne 'ARRAY') {
             if (!is_node($node)) {
-                # TODO
-                die 'Invalid AST Node ' . np($node);
+                my $d = Data::Dumper->new([$node]);
+                $d->Indent(0);
+                $d->Terse(1);
+
+                die 'Invalid AST Node: ' . $d->Dump, "\n";
             }
 
             my $visit_fn = &get_visit_fn($visitor, $node->{kind}, $is_leaving);
             if ($visit_fn) {
                 $result = $visit_fn->($visitor, $node, $key, $parent, $path, $ancestors);
-                goto END if $result && $result == BREAK;
+                goto END if ref($result) && $result == BREAK;
 
                 # TODO: Perlify all this undefined, null, true, and false
 
@@ -254,7 +258,7 @@ NEXT:
                 }
                 # else if (result !== undefined)
                 elsif (defined($result)) {
-                    push @$edits, [$key, $result == NULL ? undef : $result];
+                    push @$edits, [$key, (ref($result) && $result == NULL) ? undef : $result];
 
                     if (!$is_leaving) {
                         if (is_node($result)) {
