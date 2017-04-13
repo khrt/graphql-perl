@@ -67,7 +67,7 @@ subtest 'parse provides useful error when using source' => sub {
             )
         );
     };
-    like $@, qr/Syntax Error MyQuery\.graphql \(1:6\) Expected {, found <EOF>/;
+    like $@, qr/Syntax Error MyQuery\.graphql \(1:6\) Expected \{, found <EOF>/;
 };
 
 subtest 'parses variable inline values' => sub {
