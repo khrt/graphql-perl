@@ -26,7 +26,7 @@ use constant {
     COMMENT   => 'Comment',
 };
 
-use Exporter 'import';
+use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
     SOF EOF BANG DOLLAR PAREN_L PAREN_R SPREAD COLON EQUALS AT

@@ -3,7 +3,7 @@ package GraphQL::Language::Location;
 use strict;
 use warnings;
 
-use Exporter 'import';
+use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/get_location/);
 

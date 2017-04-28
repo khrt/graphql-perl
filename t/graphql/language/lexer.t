@@ -4,7 +4,6 @@ use warnings;
 
 use feature 'say';
 use DDP;
-
 use Test::More;
 
 use GraphQL::Language::Source;

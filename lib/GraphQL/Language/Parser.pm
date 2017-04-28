@@ -13,7 +13,7 @@ use GraphQL::Language::Lexer;
 use DDP { caller_info => 0, };
 use Carp 'longmess';
 
-use Exporter 'import';
+use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/parse parse_value parse_type/);
 

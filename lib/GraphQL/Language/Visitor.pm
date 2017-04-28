@@ -69,7 +69,7 @@ use constant {
     NULL  => {},
 };
 
-use Exporter 'import';
+use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
     QUERY_DOCUMENT_KEYS BREAK NULL

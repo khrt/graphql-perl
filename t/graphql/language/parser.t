@@ -14,7 +14,6 @@ use DDP {
             'GraphQL::Language::Source' => sub { '...' },
         },
 };
-
 use Test::Deep;
 use Test::More;
 use FindBin '$Bin';
