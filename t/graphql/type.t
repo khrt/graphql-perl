@@ -39,7 +39,7 @@ $BlogArticle = GraphQLObjectType(
     fields => {
         id => { type => GraphQLString },
         is_published => { type => GraphQLBoolean },
-        author => $BlogAuthor,
+        author => { type => $BlogAuthor },
         title => { type => GraphQLString },
         body => { type => GraphQLString },
     },

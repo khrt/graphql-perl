@@ -105,14 +105,14 @@ sub __EnumValue {
               'One possible value for a given Enum. Enum values are unique values, not '
             . 'a placeholder for a string or numeric value. However an Enum value is '
             . 'returned in a JSON response as a string.',
-        fields => sub {
+        fields => sub { {
             name => { type => GraphQLNonNull(GraphQLString) },
             description => { type => GraphQLString },
             is_deprecated => { type => GraphQLNonNull(GraphQLBoolean) },
             deprecation_reason => {
                 type => GraphQLString,
             }
-        },
+        } },
     );
 }
 
@@ -124,7 +124,7 @@ sub __InputValue {
               'Arguments provided to Fields or Directives and the input fields of an '
             . 'InputObject are represented as Input Values which describe their type '
             . 'and optionally a default value.',
-        fields => sub {
+        fields => sub { {
             name => { type => GraphQLNonNull(GraphQLString) },
             description => { type => GraphQLString },
             #TODO: type => { type => GraphQLNonNull(__Type) },
@@ -141,7 +141,7 @@ sub __InputValue {
                     #     : print_doc(ast_from_value($input_val->{default_value}, $input_val->{type}));
                 },
             }
-        },
+        } },
     );
 }
 
@@ -152,7 +152,7 @@ sub __Field {
         description =>
               'Object and Interface types are described by a list of Fields, each of '
             . 'which has a name, potentially a list of arguments, and a return type.',
-        fields => sub {
+        fields => sub { {
             name => { type => GraphQLNonNull(GraphQLString) },
             description => { type => GraphQLString },
             args => {
@@ -167,7 +167,7 @@ sub __Field {
             deprecationReason => {
                 type => GraphQLString,
             }
-        },
+        } },
     );
 }
 
@@ -185,7 +185,7 @@ sub __Type {
             . "Object and Interface types provide the fields they describe. Abstract "
             . "types, Union and Interface, provide the Object types possible "
             . "at runtime. List and NonNull types compose other types.",
-        fields => sub {
+        fields => sub { {
             kind => {
                 type => GraphQLNonNull(__TypeKind),
                 resolve => sub {
@@ -310,7 +310,7 @@ sub __Type {
                 }
             },
             of_type => { type => $__Type }
-        },
+        } },
     );
 }
 
@@ -409,7 +409,7 @@ sub __Directive {
             . "execution behavior in ways field arguments will not suffice, such as "
             . "conditionally including or skipping a field. Directives provide this by "
             . "describing additional information to the executor.",
-        fields => sub {
+        fields => sub { {
             name => { type => GraphQLNonNull(GraphQLString) },
             description => { type => GraphQLString },
             locations => {
@@ -452,7 +452,7 @@ sub __Directive {
                     $d->locations->indexOf(DirectiveLocation->FIELD) != -1;
                 }
             },
-        }
+        } },
     );
 }
 
@@ -464,7 +464,7 @@ sub __Schema {
               'A GraphQL Schema defines the capabilities of a GraphQL server. It '
             . 'exposes all available types and directives on the server, as well as '
             . 'the entry points for query, mutation, and subscription operations.',
-        fields => sub {
+        fields => sub { {
             types => {
                 description => 'A list of all types supported by this server.',
                 type => GraphQLNonNull(GraphQLList(GraphQLNonNull(__Type))),
@@ -508,7 +508,7 @@ sub __Schema {
                     $schema->get_directives;
                 },
             }
-        },
+        } },
     )
 }
 

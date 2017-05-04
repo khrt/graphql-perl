@@ -27,8 +27,6 @@ use DDP {
     caller_info => 0,
 };
 
-use Storable qw/dclone/;
-
 use GraphQL::Type::Introspection qw/__Schema/;
 use GraphQL::Util::Type qw/is_type_subtype_of/;
 
@@ -72,7 +70,7 @@ sub new {
         $self->get_query_type,
         $self->get_mutation_type,
         $self->get_subscription_type,
-        #XXX __Schema,
+        __Schema,
     );
 
     my $types = $config{types};
@@ -199,7 +197,10 @@ sub type_map_reducer {
     if ($type->isa('GraphQL::Type::Union')) {
         # %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } @{ $type->get_types };
         for (@{ $type->get_types }) {
-            $map = type_map_reducer($map, $_);
+            $map = {
+                %$map,
+                %{ type_map_reducer($map, $_) },
+            };
         }
     }
 
@@ -208,7 +209,10 @@ sub type_map_reducer {
         #     map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () }
         #     @{ $type->get_interfaces };
         for (@{ $type->get_interfaces }) {
-            $map = type_map_reducer($map, $_);
+            $map = {
+                %$map,
+                %{ type_map_reducer($map, $_) },
+            };
         }
     }
 
@@ -216,7 +220,6 @@ sub type_map_reducer {
         || $type->isa('GraphQL::Type::Interface'))
     {
         my $field_map = $type->get_fields;
-        p $field_map;
 
         for my $field_name (keys %$field_map) {
             my $field = $field_map->{ $field_name };
@@ -234,10 +237,6 @@ sub type_map_reducer {
                     };
                 }
             }
-
-            p $field_name;
-            p $field->{type};
-            say '/';
 
             $map = {
                 %$map,

@@ -3,8 +3,11 @@ package GraphQL::Util::Type;
 use strict;
 use warnings;
 
+use feature 'say';
+
 use GraphQL::Util qw/assert_valid_name/;
 
+use DDP;
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
@@ -151,7 +154,7 @@ sub get_named_type {
 sub resolve_thunk {
     my $thunk = shift;
     # TODO: CODE can be HASH or ARRAY
-    return ref($thunk) eq 'CODE' ? { $thunk->() } : $thunk;
+    return ref($thunk) eq 'CODE' ? $thunk->() : $thunk;
 }
 
 sub is_plain_obj {
