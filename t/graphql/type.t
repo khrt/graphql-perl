@@ -19,7 +19,9 @@ my $BlogImage = GraphQLObjectType(
 );
 
 my $BlogArticle;
-my $BlogAuthor = GraphQLObjectType(
+my $BlogAuthor;
+
+$BlogAuthor = GraphQLObjectType(
     name => 'Author',
     fields => sub { {
         id => { type => GraphQLString },
@@ -32,7 +34,6 @@ my $BlogAuthor = GraphQLObjectType(
     } },
 );
 
-# it's a pity!
 $BlogArticle = GraphQLObjectType(
     name => 'Article',
     fields => {
@@ -93,54 +94,52 @@ my $InputObjectType = GraphQLInputObjectType(name => 'InputObject');
 
 
 # subtest 'defines a query only schema' => sub {
-#     my $BlogSchema = GraphQLSchema(
-#         query => $BlogQuery
-#     );
+#     my $BlogSchema = GraphQLSchema(query => $BlogQuery);
 
-#     is $BlogSchema->getQueryType(), $BlogQuery;
+#     is_deeply $BlogSchema->get_query_type, $BlogQuery;
 
-#     my $articleField = $BlogQuery->get_fields->[('article' => string)];
-#     is $articleField->type, $BlogArticle;
-#     is $articleField->type->name, 'Article';
-#     is $articleField->name, 'article';
+#     my $article_field = $BlogQuery->get_fields->{article};
+#     is $article_field->{type}, $BlogArticle;
+#     is $article_field->{type}->name, 'Article';
+#     is $article_field->{name}, 'article';
 
-#     my $articleFieldType = $articleField ? $articleField->type : null;
+#     my $article_field_type = $article_field->{type};
+#     my $title_field = $article_field_type->isa('GraphQL::Type::Object')
+#         && $article_field_type->get_fields->{title};
 
-#     my $titleField = $articleFieldType->isa(GraphQLObjectType) &&
-#     $articleFieldType->get_fields->[('title' => string)];
-#     is $titleField->name, ('title');
-#     is $titleField->type, (GraphQLString);
-#     is $titleField->type->name, ('String');
+#     is $title_field->{name}, 'title';
+#     is_deeply $title_field->{type}, GraphQLString;
+#     is $title_field->{type}->name, 'String';
 
-#     my $authorField = $articleFieldType->isa(GraphQLObjectType) &&
-#     $articleFieldType->get_fields->[('author' => string)];
+#     # TODO
+#     # my $author_field = $article_field_type->isa('GraphQL::Type::Object')
+#     #     && $article_field_type->get_fields->{author};
+#     # p $author_field;
+#     # my $author_field_type = $author_field->{type};
+#     # my $recent_article_field = $author_field_type->isa('GraphQL::Type::Object')
+#     #     && $author_field_type->get_fields->{recentArticle};
 
-#     my $authorFieldType = $authorField ? $authorField->type : null;
-#     my $recentArticleField = $authorFieldType->isa(GraphQLObjectType) &&
-#     $authorFieldType->get_fields->[('recentArticle' => string)];
+#     # is_deeply $recent_article_field->{type}, $BlogArticle;
 
-#     is $recentArticleField->type, ($BlogArticle);
-
-#     my $feedField = $BlogQuery->get_fields->[('feed' => string)];
-#     is ($feedField->type => GraphQLList).ofType, $BlogArticle;
-#     is $feedField->name, ('feed');
-
+#     my $feed_field = $BlogQuery->get_fields->{feed};
+#     is $feed_field->{type}->of_type, $BlogArticle;
+#     is $feed_field->{name}, 'feed';
 # };
 
-subtest 'defines a mutation schema' => sub {
-    my $BlogSchema = GraphQLSchema(
-        query => $BlogQuery,
-        mutation => $BlogMutation
-    );
+# subtest 'defines a mutation schema' => sub {
+#     my $BlogSchema = GraphQLSchema(
+#         query => $BlogQuery,
+#         mutation => $BlogMutation
+#     );
 
-    is $BlogSchema->get_mutation_type, $BlogMutation;
+#     is $BlogSchema->get_mutation_type, $BlogMutation;
 
-    my $write_mutation = $BlogMutation->get_fields->{write_article};
-    is $write_mutation->type, $BlogArticle;
-    is $write_mutation->type->name, 'Article';
-    is $write_mutation->name, 'write_article';
+#     my $write_mutation = $BlogMutation->get_fields->{write_article};
+#     is $write_mutation->{type}, $BlogArticle;
+#     is $write_mutation->{type}->name, 'Article';
+#     is $write_mutation->{name}, 'write_article';
 
-};
+# };
 
 # subtest 'defines a subscription schema' => sub {
 #     my $BlogSchema = GraphQLSchema(
@@ -148,13 +147,12 @@ subtest 'defines a mutation schema' => sub {
 #         subscription => $BlogSubscription
 #     );
 
-#     expect($BlogSchema->getSubscriptionType()).to.equal($BlogSubscription);
+#     is_deeply $BlogSchema->get_subscription_type, $BlogSubscription;
 
-#     my $sub = $BlogSubscription->get_fields()[('articleSubscribe' => string)];
-#     is $sub && $sub->type, ($BlogArticle);
-#     is $sub && $sub->type->name, ('Article');
-#     is $sub && $sub->name, ('articleSubscribe');
-
+#     my $sub = $BlogSubscription->get_fields->{article_subscribe};
+#     is $sub->{type}, $BlogArticle;
+#     is $sub->{type}->name, 'Article';
+#     is $sub->{name}, 'article_subscribe';
 # };
 
 # subtest 'defines an enum type with deprecated value' => sub {
@@ -163,13 +161,13 @@ subtest 'defines a mutation schema' => sub {
 #         values => { foo => { deprecation_reason => 'Just because' } }
 #     );
 
-#     expect($EnumTypeWithDeprecatedValue->getValues()[0]).to.deep.equal({
-#             name => 'foo',
-#             description => undef,
-#             is_deprecated => 1,
-#             deprecation_reason => 'Just because',
-#             value => 'foo'
-#         });
+#     is_deeply $EnumTypeWithDeprecatedValue->get_values->[0], {
+#         name => 'foo',
+#         description => undef,
+#         is_deprecated => 1,
+#         deprecation_reason => 'Just because',
+#         value => 'foo'
+#     };
 # };
 
 # subtest 'defines an object type with deprecated field' => sub {
@@ -178,210 +176,206 @@ subtest 'defines a mutation schema' => sub {
 #         fields => {
 #             bar => {
 #                 type => GraphQLString,
-#                 deprecationReason => 'A terrible reason'
-#             }
-#         }
+#                 deprecation_reason => 'A terrible reason',
+#             },
+#         },
 #     );
 
-#     expect($TypeWithDeprecatedField->get_fields()->bar).to.deep.equal({
-#             type => GraphQLString,
-#             deprecation_reason => 'A terrible reason',
-#             is_deprecated => 1,
-#             name => 'bar',
-#             args => []
-#         });
+#     is_deeply $TypeWithDeprecatedField->get_fields->{bar}, {
+#         type => GraphQLString,
+#         deprecation_reason => 'A terrible reason',
+#         is_deprecated => 1,
+#         name => 'bar',
+#         args => [],
+#     };
 # };
 
-# subtest 'includes nested input objects in the map' => sub {
-#     my $NestedInputObject = GraphQLInputObjectType(
-#         name => 'NestedInputObject',
-#         fields => { value => { type => GraphQLString } }
-#     );
-#     my $SomeInputObject = GraphQLInputObjectType(
-#         name => 'SomeInputObject',
-#         fields => { nested => { type => $NestedInputObject } }
-#     );
-#     my $SomeMutation = GraphQLObjectType(
-#         name => 'SomeMutation',
-#         fields => {
-#             mutateSomething => {
-#                 type => $BlogArticle,
-#                 args => { input => { type => $SomeInputObject } }
-#             }
-#         }
-#     );
-#     my $SomeSubscription = GraphQLObjectType(
-#         name => 'SomeSubscription',
-#         fields => {
-#             subscribeToSomething => {
-#                 type => $BlogArticle,
-#                 args => { input => { type => $SomeInputObject } }
-#             }
-#         }
-#     );
-#     my $schema = GraphQLSchema(
-#         query => $BlogQuery,
-#         mutation => $SomeMutation,
-#         subscription => $SomeSubscription
-#     );
-#     expect($schema->getTypeMap()->NestedInputObject).to.equal($NestedInputObject);
-# };
+subtest 'includes nested input objects in the map' => sub {
+    my $NestedInputObject = GraphQLInputObjectType(
+        name => 'NestedInputObject',
+        fields => { value => { type => GraphQLString } }
+    );
+    my $SomeInputObject = GraphQLInputObjectType(
+        name => 'SomeInputObject',
+        fields => { nested => { type => $NestedInputObject } }
+    );
+    my $SomeMutation = GraphQLObjectType(
+        name => 'SomeMutation',
+        fields => {
+            mutate_something => {
+                type => $BlogArticle,
+                args => { input => { type => $SomeInputObject } }
+            }
+        }
+    );
+    my $SomeSubscription = GraphQLObjectType(
+        name => 'SomeSubscription',
+        fields => {
+            subscribe_to_something => {
+                type => $BlogArticle,
+                args => { input => { type => $SomeInputObject } }
+            }
+        }
+    );
+    my $schema = GraphQLSchema(
+        query => $BlogQuery,
+        mutation => $SomeMutation,
+        subscription => $SomeSubscription
+    );
 
-# subtest 'includes interfaces\' subtypes in the type map' => sub {
+    is_deeply $schema->get_type_map->{NestedInputObject}, $NestedInputObject;
+};
+
+# subtest "includes interfaces' subtypes in the type map" => sub {
 #     my $SomeInterface = GraphQLInterfaceType(
 #         name => 'SomeInterface',
 #         fields => {
-#             f => { type => GraphQLInt }
-#         }
+#             f => { type => GraphQLInt },
+#         },
 #     );
 
 #     my $SomeSubtype = GraphQLObjectType(
 #         name => 'SomeSubtype',
 #         fields => {
-#             f => { type => GraphQLInt }
+#             f => { type => GraphQLInt },
 #         },
 #         interfaces => [ $SomeInterface ],
-#         is_type_of => () => true
+#         is_type_of => sub { 1 },
 #     );
 
 #     my $schema = GraphQLSchema(
 #         query => GraphQLObjectType(
 #             name => 'Query',
 #             fields => {
-#                 iface => { type => $SomeInterface }
-#             }
+#                 iface => { type => $SomeInterface },
+#             },
 #         ),
 #         types => [ $SomeSubtype ]
 #     );
 
-#     expect($schema->getTypeMap().SomeSubtype).to.equal($SomeSubtype);
+#     is_deeply $schema->get_type_map->{SomeSubtype}, $SomeSubtype;
 # };
 
 # subtest 'includes interfaces\' thunk subtypes in the type map' => sub {
 #     my $SomeInterface = GraphQLInterfaceType(
 #         name => 'SomeInterface',
 #         fields => {
-#             f => { type => GraphQLInt }
-#         }
+#             f => { type => GraphQLInt },
+#         },
 #     );
 
 #     my $SomeSubtype = GraphQLObjectType(
 #         name => 'SomeSubtype',
 #         fields => {
-#             f => { type => GraphQLInt }
+#             f => { type => GraphQLInt },
 #         },
-#         interfaces => () => [ $SomeInterface ],
-#         is_type_of => () => true
+#         interfaces => sub { [$SomeInterface] },
+#         is_type_of => sub { 1 },
 #     );
 
 #     my $schema = GraphQLSchema(
 #         query => GraphQLObjectType(
 #             name => 'Query',
 #             fields => {
-#                 iface => { type => $SomeInterface }
-#             }
+#                 iface => { type => $SomeInterface },
+#             },
 #         ),
-#         types => [ $SomeSubtype ]
+#         types => [$SomeSubtype],
 #     );
 
-#     expect($schema->getTypeMap().SomeSubtype).to.equal($SomeSubtype);
+#     is_deeply $schema->get_type_map->{SomeSubtype}, $SomeSubtype;
 # };
 
 
 # subtest 'stringifies simple types' => sub {
-
-#     expect(String(GraphQLInt)).to.equal('Int');
-#     expect(String(BlogArticle)).to.equal('Article');
-#     expect(String(InterfaceType)).to.equal('Interface');
-#     expect(String(UnionType)).to.equal('Union');
-#     expect(String(EnumType)).to.equal('Enum');
-#     expect(String(InputObjectType)).to.equal('InputObject');
-#     expect(
-#         String(new GraphQLNonNull(GraphQLInt))
-#     ).to.equal('Int!');
-#     expect(
-#         String(new GraphQLList(GraphQLInt))
-#     ).to.equal('[Int]');
-#     expect(
-#         String(new GraphQLNonNull(new GraphQLList(GraphQLInt)))
-#     ).to.equal('[Int]!');
-#     expect(
-#         String(new GraphQLList(new GraphQLNonNull(GraphQLInt)))
-#     ).to.equal('[Int!]');
-#     expect(
-#         String(new GraphQLList(new GraphQLList(GraphQLInt)))
-#     ).to.equal('[[Int]]');
+#     is GraphQLInt->to_string, 'Int';
+#     is $BlogArticle->to_string, 'Article';
+#     is $InterfaceType->to_string, 'Interface';
+#     is $UnionType->to_string, 'Union';
+#     is $EnumType->to_string, 'Enum';
+#     is $InputObjectType->to_string, 'InputObject';
+#     is GraphQLNonNull(GraphQLInt)->to_string, 'Int!';
+#     is GraphQLList(GraphQLInt)->to_string, '[Int]';
+#     is GraphQLNonNull(GraphQLList(GraphQLInt))->to_string, '[Int]!';
+#     is GraphQLList(GraphQLNonNull(GraphQLInt))->to_string, '[Int!]';
+#     is GraphQLList(GraphQLList(GraphQLInt))->to_string, '[[Int]]';
 # };
 
 # subtest 'identifies input types' => sub {
-#     my $expected = [
-#         [ GraphQLInt, true ],
-#         [ ObjectType, false ],
-#         [ InterfaceType, false ],
-#         [ UnionType, false ],
-#         [ EnumType, true ],
-#         [ InputObjectType, true ]
-#     ];
-#     expected.forEach(([ type, answer ]) => {
-#             expect(isInputType(type)).to.equal(answer);
-#             expect(isInputType(new GraphQLList(type))).to.equal(answer);
-#             expect(isInputType(new GraphQLNonNull(type))).to.equal(answer);
-#         });
+#     my @expected = (
+#         [GraphQLInt, 1],
+#         [$ObjectType, ''],
+#         [$InterfaceType, ''],
+#         [$UnionType, ''],
+#         [$EnumType, 1],
+#         [$InputObjectType, 1]
+#     );
+
+#     for my $p (@expected) {
+#         my ($type, $answer) = @$p;
+
+#         is is_input_type($type), $answer;
+#         is is_input_type(GraphQLList($type)), $answer;
+#         is is_input_type(GraphQLNonNull($type)), $answer;
+#     }
 # };
 
 # subtest 'identifies output types' => sub {
-#     my $expected = [
-#         [ GraphQLInt, true ],
-#         [ ObjectType, true ],
-#         [ InterfaceType, true ],
-#         [ UnionType, true ],
-#         [ EnumType, true ],
-#         [ InputObjectType, false ]
-#     ];
-#     expected.forEach(([ type, answer ]) => {
-#             expect(isOutputType(type)).to.equal(answer);
-#             expect(isOutputType(new GraphQLList(type))).to.equal(answer);
-#             expect(isOutputType(new GraphQLNonNull(type))).to.equal(answer);
-#         });
+#     my @expected = (
+#         [GraphQLInt, 1],
+#         [$ObjectType, 1],
+#         [$InterfaceType, 1],
+#         [$UnionType, 1],
+#         [$EnumType, 1],
+#         [$InputObjectType, '']
+#     );
+
+#     for my $p (@expected) {
+#         my ($type, $answer) = @$p;
+
+#         is is_output_type($type), $answer;
+#         is is_output_type(GraphQLList($type)), $answer;
+#         is is_output_type(GraphQLNonNull($type)), $answer;
+#     }
 # };
 
 # subtest 'prohibits nesting NonNull inside NonNull' => sub {
-#     expect(() =>
-#         new GraphQLNonNull(new GraphQLNonNull(GraphQLInt))
-#     ).to.throw(
-#         'Can only create NonNull of a Nullable GraphQLType but got => Int!.'
-#     );
+#     eval { GraphQLNonNull(GraphQLNonNull(GraphQLInt)) };
+#     my $e = $@;
+#     is $e, "Can only create NonNull of a Nullable GraphQLType but got: Int!.\n";
 # };
 
 # subtest 'prohibits putting non-Object types in unions' => sub {
-#     my $badUnionTypes = [
+#     my @bad_union_types = (
 #         GraphQLInt,
-#         new GraphQLNonNull(GraphQLInt),
-#         new GraphQLList(GraphQLInt),
-#         InterfaceType,
-#         UnionType,
-#         EnumType,
-#         InputObjectType
-#     ];
-#     badUnionTypes.forEach(x => {
-#             expect(() =>
-#                 new GraphQLUnionType({ name => 'BadUnion', types: [ x ] }).getTypes()
-#             ).to.throw(
-#                 `BadUnion may only contain Object types, it cannot contain => ${x}.`
-#             );
-#         });
-# };
-
-# subtest 'allows a thunk for Union\'s types' => sub {
-#     my $union = GraphQLUnionType(
-#         name => 'ThunkUnion',
-#         types => () => [ ObjectType ]
+#         GraphQLNonNull(GraphQLInt),
+#         GraphQLList(GraphQLInt),
+#         $InterfaceType,
+#         $UnionType,
+#         $EnumType,
+#         $InputObjectType
 #     );
 
-#     my $types = $union->getTypes();
-#     is $types.length, (1);
-#     is $types[0], (ObjectType);
+#     for my $x (@bad_union_types) {
+#         eval {
+#             GraphQLUnionType(name => 'BadUnion', types => [$x])->get_types
+#         };
+#         my $e = $@;
+#         is $e, "BadUnion may only contain Object types, it cannot contain: ${ \$x->to_string }.\n";
+#     }
 # };
+
+# # TODO
+# # subtest 'allows a thunk for Union\'s types' => sub {
+# #     my $union = GraphQLUnionType(
+# #         name => 'ThunkUnion',
+# #         types => sub { [$ObjectType] },
+# #     );
+
+# #     my $types = $union->get_types;
+# #     is scalar(@$types), 1;
+# #     is_deeply $types->[0], $ObjectType;
+# # };
 
 # subtest 'does not mutate passed field definitions' => sub {
 #     my $fields = {
@@ -399,53 +393,51 @@ subtest 'defines a mutation schema' => sub {
 #     };
 #     my $testObject1 = GraphQLObjectType(
 #         name => 'Test1',
-#         %$fields,
+#         fields => $fields,
 #     );
 #     my $testObject2 = GraphQLObjectType(
 #         name => 'Test2',
-#         %$fields,
+#         fields => $fields,
 #     );
 
-#     expect($testObject1->get_fields()).to.deep.equal($testObject2->get_fields());
-#     expect($fields).to.deep.equal({
-#             field1 => {
-#                 type => GraphQLString,
-#             },
-#             field2 => {
-#                 type => GraphQLString,
-#                 args => {
-#                     id => {
-#                         type => GraphQLString
-#                     }
+#     is_deeply $testObject1->get_fields, $testObject2->get_fields;
+#     is_deeply $fields, {
+#         field1 => {
+#             type => GraphQLString,
+#         },
+#         field2 => {
+#             type => GraphQLString,
+#             args => {
+#                 id => {
+#                     type => GraphQLString
 #                 }
 #             }
-#         });
+#         }
+#         };
 
 #     my $testInputObject1 = GraphQLInputObjectType(
 #         name => 'Test1',
-#         %$fields
+#         fields => $fields,
 #     );
 #     my $testInputObject2 = GraphQLInputObjectType(
 #         name => 'Test2',
-#         %$fields
+#         fields => $fields,
 #     );
 
-#     expect($testInputObject1->get_fields()).to.deep.equal(
-#         $testInputObject2->get_fields()
-#     );
-#     expect($fields).to.deep.equal({
-#             field1 => {
-#                 type => GraphQLString,
-#             },
-#             field2 => {
-#                 type => GraphQLString,
-#                 args => {
-#                     id => {
-#                         type => GraphQLString
-#                     }
+#     is_deeply $testInputObject1->get_fields, $testInputObject2->get_fields;
+#     is_deeply $fields, {
+#         field1 => {
+#             type => GraphQLString,
+#         },
+#         field2 => {
+#             type => GraphQLString,
+#             args => {
+#                 id => {
+#                     type => GraphQLString
 #                 }
 #             }
-#         });
+#         }
+#     };
 # };
 
 done_testing;

@@ -10,7 +10,7 @@ use GraphQL::Language::Source;
 use GraphQL::Language::Token;
 use GraphQL::Language::Lexer;
 
-use DDP { caller_info => 0, };
+use DDP;# { caller_info => 0, };
 use Carp 'longmess';
 
 use Exporter qw/import/;

@@ -5,11 +5,11 @@ use warnings;
 use feature 'say';
 use FindBin '$Bin';
 use DDP {
-    indent  => 2,
-    class   => { internals => 1, show_methods => 'none', },
-    filters => {
-        'GraphQL::Language::Token' => sub { $_[0]->desc },
-    },
+    # indent  => 2,
+    # class   => { internals => 1, show_methods => 'none', },
+    # filters => {
+    #     'GraphQL::Language::Token' => sub { $_[0]->desc },
+    # },
 };
 use Test::More;
 

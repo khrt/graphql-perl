@@ -6,6 +6,8 @@ use warnings;
 use GraphQL::Util qw/assert_valid_name/;
 use GraphQL::Util::Type qw/define_types/;
 
+sub name { shift->{name} }
+
 sub new {
     my ($class, %config) = @_;
 

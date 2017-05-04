@@ -5,11 +5,13 @@ use warnings;
 
 use GraphQL::Util::Type qw/is_type/;
 
+sub of_type { shift->{of_type} }
+
 sub new {
     my ($class, $type) = @_;
 
-    die "Can only create NonNull of a Nullable GraphQLType but got: $type"
-        if !is_type($type) && $type->isa('GraphQL::Type::NonNull');
+    die "Can only create NonNull of a Nullable GraphQLType but got: ${ \$type->to_string }.\n"
+        if !is_type($type) || $type->isa('GraphQL::Type::NonNull');
 
     my $self = bless { of_type => $type }, $class;
     return $self;
@@ -17,7 +19,7 @@ sub new {
 
 sub to_string {
     my $self = shift;
-    return $self->{of_type} . '!';
+    return $self->of_type->to_string . '!';
 }
 
 sub to_json { shift->to_string }

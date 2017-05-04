@@ -6,6 +6,8 @@ use warnings;
 use GraphQL::Util::Type qw/is_input_type is_plain_obj resolve_thunk/;
 use GraphQL::Util qw/assert_valid_name/;
 
+sub name { shift->{name} }
+
 sub new {
     my ($class, %config) = @_;
 
@@ -32,12 +34,12 @@ sub _define_field_map {
     my $self = shift;
 
     my $field_map = resolve_thunk($self->{_type_config}{fields});
-    die qq`$self->{name} fields must be an object with field names as keys or a `
-        . qq`function which returns such an object` unless is_plain_obj($field_map);
+    die   qq`$self->{name} fields must be an object with field names as keys or a `
+        . qq`function which returns such an object\n` unless is_plain_obj($field_map);
 
     my @field_names = keys %$field_map;
-    die qq`$self->{name} fields must be an object with names as keys or a `
-        . qq`function which return such an object` if scalar(@field_names) > 0;
+    die   qq`$self->{name} fields must be an object with names as keys or a `
+        . qq`function which return such an object\n` unless scalar(@field_names);
 
     my %result_field_map;
     for my $field_name (@field_names) {
@@ -48,10 +50,11 @@ sub _define_field_map {
             name => $field_name,
         };
 
-        die qq`$self->{name}.$field_name field type must be Input Type but `
-            . qq`got: $field->{type}` unless is_input_type($field->{type});
-        die qq`$self->{name}.$field_name field has a resolve property, but `
-            . qq`Input Types cannot define resolvers.` unless $field->{resolve};
+        die   qq`$self->{name}.$field_name field type must be Input Type but `
+            . qq`got: $field->{type}\n` unless is_input_type($field->{type});
+
+        die   qq`$self->{name}.$field_name field has a resolve property, but `
+            . qq`Input Types cannot define resolvers.\n` if $field->{resolve};
 
         $result_field_map{$field_name} = $field;
     }

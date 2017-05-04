@@ -17,7 +17,9 @@ our @EXPORT_OK = (qw/
     is_named_type     assert_named_type
     get_named_type
     resolve_thunk
+
     is_plain_obj
+    is_type_subtype_of
 
     define_enum_values
     define_field_map
@@ -50,7 +52,7 @@ sub is_input_type {
     return
            $named_type->isa('GraphQL::Type::Scalar')
         || $named_type->isa('GraphQL::Type::Enum')
-        || $named_type->isa('GraphQL::Type::Object');
+        || $named_type->isa('GraphQL::Type::InputObject');
 }
 
 sub assert_input_type {
@@ -136,8 +138,10 @@ sub assert_named_type {
 sub get_named_type {
     my $type = shift;
     my $unmodified_type = $type;
-    while ($unmodified_type->isa('GraphQLList') || $unmodified_type->isa('GraphQLNonNull')) {
-        $unmodified_type = $unmodified_type->{of_type};
+    if (   $unmodified_type->isa('GraphQL::Type::List')
+        || $unmodified_type->isa('GraphQL::Type::NonNull'))
+    {
+        $unmodified_type = $unmodified_type->of_type;
     }
     return $unmodified_type;
 }
@@ -146,13 +150,62 @@ sub get_named_type {
 # otherwise immutable type definitions.
 sub resolve_thunk {
     my $thunk = shift;
-    return ref($thunk) eq 'CODE' ? $thunk->() : $thunk;
+    # TODO: CODE can be HASH or ARRAY
+    return ref($thunk) eq 'CODE' ? { $thunk->() } : $thunk;
 }
 
 sub is_plain_obj {
     my $obj = shift;
-    return $obj && ref($obj) eq 'HASH';
+    return $obj
+        && (ref($obj) eq 'HASH'
+        || (ref($obj) ne 'CODE' && $obj->isa('HASH')));
 }
+
+sub is_type_subtype_of {
+    my ($schema, $maybe_subtype, $super_type) = @_;
+
+    # Equivalent type is a valid subtype
+    return 1 if $maybe_subtype->to_string eq $super_type->to_string;
+
+    # If super_type is non-null, maybe_subtype must also be non-null.
+    if ($super_type->isa('GraphQL::Type::NonNull')) {
+        if ($maybe_subtype->isa('GraphQL::Type::NonNull')) {
+            return is_type_subtype_of($schema, $maybe_subtype->of_type,
+                $super_type->of_type);
+        }
+        return;
+    }
+    elsif ($maybe_subtype->isa('GraphQL::Type::NonNull')) {
+        # If super_type is nullable, maybe_subtype may be non-null or nullable.
+        return is_type_subtype_of($schema, $maybe_subtype->of_type, $super_type);
+    }
+
+    # If super_type is a list, maybe_subtype type must also be a list.
+    if ($super_type->isa('GraphQL::Type::List')) {
+        if ($maybe_subtype->isa('GraphQL::Type::List')) {
+            return is_type_subtype_of($schema, $maybe_subtype->of_type,
+                $super_type->of_type);
+        }
+        return;
+    }
+    elsif ($maybe_subtype->isa('GraphQL::Type::List')) {
+        # If super_type is not a list, maybe_subtype must also be not a list.
+        return;
+    }
+
+    # If super_type type is an abstract type, maybe_subtype type may be a
+    # currently possible object type.
+    if (   is_abstract_type($super_type)
+        && maybe_subtype->isa('GraphQL::Type::Object')
+        && $schema->is_possible_type($super_type, $maybe_subtype))
+    {
+        return 1;
+    }
+
+    # Otherwise, the child type is not a valid subtype of the parent type.
+    return;
+}
+
 
 # If a resolver is defined, it must be a function
 sub is_valid_resolver {
@@ -185,6 +238,7 @@ sub define_enum_values {
             name => $value_name,
             description => $value->{description},
             is_deprecated => $value->{deprecation_reason} ? 1 : 0,
+            deprecation_reason => $value->{deprecation_reason},
             value => $value->{value} ? $value->{value} : $value_name,
         };
     }
@@ -197,18 +251,18 @@ sub define_field_map {
 
     my $field_map = resolve_thunk($fields_thunk);
     die   qq`$type->{name} fields must be an object with field names as keys or a `
-        . qq`function which returns such an object` unless is_plain_obj($field_map);
+        . qq`function which returns such an object.\n` unless is_plain_obj($field_map);
 
-    my $field_names = keys %$field_map;
+    my @field_names = keys %$field_map;
     die   qq`$type->{name} fields must be an object with field names as keys or a `
-        . qq`function which returns such an object` unless scalar(@$field_names) > 0;
+        . qq`function which returns such an object.\n` unless scalar(@field_names);
 
     my %result_field_map;
-    for my $field_name (@$field_names) {
+    for my $field_name (@field_names) {
         assert_valid_name($field_name);
 
         my $field_config = $field_map->{$field_name};
-        die qq`$type->{name}.$field_name field config must be an object`
+        die qq`$type->{name}.$field_name field config must be an object\n`
             unless is_plain_obj($field_config);
         die   qq`$type->{name}.$field_name should provide "deprecation_reason" instead `
             . qq`of "is_deprecated".` if $field_config->{is_deprecated};
@@ -259,6 +313,7 @@ sub define_field_map {
 sub define_interfaces {
     my ($type, $interfaces_thunk) = @_;
     my $interfaces = resolve_thunk($interfaces_thunk);
+    return [] unless $interfaces;
 
     die   qq`$type->{name} intrefaces must be an Array or a function returns `
         . qq`an Array.` if ref($interfaces) ne 'ARRAY';
@@ -287,7 +342,7 @@ sub define_types {
 
     for my $obj_type (@$types) {
         die   qq`$union_type->{name} may only contain Object types, it cannot contain: `
-            . qq`$obj_type` unless $obj_type->isa('GraphQL::Type::Object');
+            . qq`${ \$obj_type->to_string }.\n` unless $obj_type->isa('GraphQL::Type::Object');
 
         if (ref($union_type->{resolve_type}) ne 'CODE') {
             die   qq`Union type "$union_type->{name}" does not provide a "resolve_type" `

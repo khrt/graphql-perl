@@ -5,6 +5,8 @@ use warnings;
 
 use GraphQL::Util::Type qw/is_type/;
 
+sub of_type { shift->{of_type} }
+
 sub new {
     my ($class, $type) = @_;
 
@@ -17,7 +19,7 @@ sub new {
 
 sub to_string {
     my $self = shift;
-    return '[' . $self->{of_type} . ']';
+    return '[' . $self->of_type->to_string . ']';
 }
 
 sub to_json { shift->to_string }

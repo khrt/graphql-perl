@@ -6,6 +6,8 @@ use warnings;
 use GraphQL::Util qw/assert_valid_name/;
 use GraphQL::Util::Type qw/define_enum_values/;
 
+sub name { shift->{name} }
+
 sub new {
     my ($class, %config) = @_;
 
@@ -22,9 +24,6 @@ sub new {
     }, $class;
 
     $self->{_values} = define_enum_values($self, $config{values});
-
-    use DDP;
-    p %config;
 
     return $self;
 }

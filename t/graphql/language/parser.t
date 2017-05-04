@@ -3,16 +3,16 @@ use strict;
 use warnings;
 
 use DDP {
-    indent  => 2,
-    index   => 0,
-    class   => { internals => 1, show_methods => 'none', },
-        filters => {
-            'GraphQL::Language::Token' => sub {
-                my $t = shift->inspect;
-                sprintf "{ %s }", join ', ', map { sprintf "%s: %s", $_, $t->{$_} // 'undef' } keys %$t;
-            },
-            'GraphQL::Language::Source' => sub { '...' },
-        },
+    # indent  => 2,
+    # index   => 0,
+    # class   => { internals => 1, show_methods => 'none', },
+    #     filters => {
+    #         'GraphQL::Language::Token' => sub {
+    #             my $t = shift->inspect;
+    #             sprintf "{ %s }", join ', ', map { sprintf "%s: %s", $_, $t->{$_} // 'undef' } keys %$t;
+    #         },
+    #         'GraphQL::Language::Source' => sub { '...' },
+    #     },
 };
 use Test::Deep;
 use Test::More;

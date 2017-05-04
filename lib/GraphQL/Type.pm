@@ -3,7 +3,6 @@ package GraphQL::Type;
 use strict;
 use warnings;
 
-# use GraphQL::Type::Schema;
 use GraphQL::Type::Enum;
 use GraphQL::Type::InputObject;
 use GraphQL::Type::Interface;
@@ -77,7 +76,7 @@ sub Kind { 'GraphQL::Language::Parser' }
 sub GraphQLSchema {
     my $schema;
     # TODO
-    eval {
+    {
         require GraphQL::Type::Schema;
         $schema = GraphQL::Type::Schema->new(@_);
     };

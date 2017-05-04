@@ -7,11 +7,11 @@ use feature 'say';
 use Carp qw/longmess/;
 use Data::Dumper;
 use DDP {
-    indent => 2,
-    max_depth => 3,
-    index => 0,
-    class => { internals => 0, show_methods => 'none', },
-    caller_info => 0,
+    # indent => 2,
+    # max_depth => 3,
+    # index => 0,
+    # class => { internals => 0, show_methods => 'none', },
+    # caller_info => 0,
 };
 use Storable qw/dclone/;
 

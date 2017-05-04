@@ -44,43 +44,43 @@ sub __TypeKind {
         description => 'An enum describing what kind of type a given `__Type` is.',
         values => {
             SCALAR => {
-                value => TypeKind->SCALAR,
+                value => 'SCALAR',
                 description => 'Indicates this type is a scalar.'
             },
             OBJECT => {
-                value => TypeKind->OBJECT,
-                description => 'Indicates this type is an object. ' +
-                '`fields` and `interfaces` are valid fields.'
+                value => 'OBJECT',
+                description => 'Indicates this type is an object. '
+                             . '`fields` and `interfaces` are valid fields.'
             },
             INTERFACE => {
-                value => TypeKind->INTERFACE,
-                description => 'Indicates this type is an interface. ' +
-                '`fields` and `possibleTypes` are valid fields.'
+                value => 'INTERFACE',
+                description => 'Indicates this type is an interface. '
+                             . '`fields` and `possibleTypes` are valid fields.'
             },
             UNION => {
-                value => TypeKind->UNION,
-                description => 'Indicates this type is a union. ' +
-                '`possibleTypes` is a valid field.'
+                value => 'UNION',
+                description => 'Indicates this type is a union. '
+                             . '`possibleTypes` is a valid field.'
             },
             ENUM => {
-                value => TypeKind->ENUM,
-                description => 'Indicates this type is an enum. ' +
-                '`enumValues` is a valid field.'
+                value => 'ENUM',
+                description => 'Indicates this type is an enum. '
+                             . '`enumValues` is a valid field.'
             },
             INPUT_OBJECT => {
-                value => TypeKind->INPUT_OBJECT,
-                description => 'Indicates this type is an input object. ' +
-                '`inputFields` is a valid field.'
+                value => 'INPUT_OBJECT',
+                description => 'Indicates this type is an input object. '
+                             . '`inputFields` is a valid field.'
             },
             LIST => {
-                value => TypeKind->LIST,
-                description => 'Indicates this type is a list. ' +
-                '`ofType` is a valid field.'
+                value => 'LIST',
+                description => 'Indicates this type is a list. '
+                             . '`ofType` is a valid field.'
             },
             NON_NULL => {
-                value => TypeKind->NON_NULL,
-                description => 'Indicates this type is a non-null. ' +
-                '`ofType` is a valid field.'
+                value => 'NON_NULL',
+                description => 'Indicates this type is a non-null. '
+                             . '`ofType` is a valid field.'
             },
         },
     );
@@ -106,7 +106,12 @@ sub __EnumValue {
             . 'a placeholder for a string or numeric value. However an Enum value is '
             . 'returned in a JSON response as a string.',
         fields => sub {
-
+            name => { type => GraphQLNonNull(GraphQLString) },
+            description => { type => GraphQLString },
+            is_deprecated => { type => GraphQLNonNull(GraphQLBoolean) },
+            deprecation_reason => {
+                type => GraphQLString,
+            }
         },
     );
 }
@@ -120,7 +125,22 @@ sub __InputValue {
             . 'InputObject are represented as Input Values which describe their type '
             . 'and optionally a default value.',
         fields => sub {
-
+            name => { type => GraphQLNonNull(GraphQLString) },
+            description => { type => GraphQLString },
+            #TODO: type => { type => GraphQLNonNull(__Type) },
+            default_value => {
+                type => GraphQLString,
+                description =>
+                      'A GraphQL-formatted string representing the default value for this '
+                    . 'input value.',
+                resolve => sub {
+                    my (undef, $input_val) = @_;
+                    # TODO
+                    # is_invalid($input_val->{default_value})
+                    #     ? undef
+                    #     : print_doc(ast_from_value($input_val->{default_value}, $input_val->{type}));
+                },
+            }
         },
     );
 }
@@ -139,7 +159,7 @@ sub __Field {
                 type => GraphQLNonNull(GraphQLList(GraphQLNonNull(__InputValue))),
                 resolve => sub {
                     my (undef, $field) = @_;
-                    $field->args || [];
+                    return $field->args || [];
                 },
             },
             # TODO: type => { type => GraphQLNonNull(__Type) },

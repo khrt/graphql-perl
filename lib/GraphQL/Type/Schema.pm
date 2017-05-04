@@ -3,18 +3,34 @@ package GraphQL::Type::Schema;
 use strict;
 use warnings;
 
+use feature 'say';
+
 use DDP {
     indent => 2,
-    #max_depth => 3,
+    max_depth => 3,
     index => 0,
     class => {
         internals => 0,
         show_methods => 'none',
     },
+    filters => {
+        'GraphQL::Type::Enum'        => sub { shift->to_string },
+        'GraphQL::Type::InputObject' => sub { shift->to_string },
+        'GraphQL::Type::Interface'   => sub { shift->to_string },
+        'GraphQL::Type::List'        => sub { shift->to_string },
+        'GraphQL::Type::NonNull'     => sub { shift->to_string },
+        'GraphQL::Type::Object'      => sub { shift->to_string },
+        'GraphQL::Type::Scalar'      => sub { shift->to_string },
+        'GraphQL::Type::Schema'      => sub { shift->to_string },
+        'GraphQL::Type::Union'       => sub { shift->to_string },
+        },
     caller_info => 0,
 };
 
+use Storable qw/dclone/;
+
 use GraphQL::Type::Introspection qw/__Schema/;
+use GraphQL::Util::Type qw/is_type_subtype_of/;
 
 sub specified_directives { 'specified_directives' }
 
@@ -56,7 +72,7 @@ sub new {
         $self->get_query_type,
         $self->get_mutation_type,
         $self->get_subscription_type,
-        __Schema,
+        #XXX __Schema,
     );
 
     my $types = $config{types};
@@ -64,13 +80,17 @@ sub new {
         push @initial_types, @$types;
     }
 
-p @initial_types;
-    $self->{_type_map} = [grep { type_map_reducer($_) } @initial_types];
-p $self->{_type_map};
+    for (@initial_types) {
+        $self->{_type_map} = {
+            %{ $self->{_type_map} || {} },
+            %{ type_map_reducer({}, $_) },
+        };
+    }
+    print 'typemap:'; p $self->{_type_map};
 
     # Keep track of all implementations by interface name.
     $self->{_implementations} = {};
-    for my $type_name (@{ $self->{_type_map} }) {
+    for my $type_name (keys %{ $self->{_type_map} }) {
         my $type = $self->{_type_map}{ $type_name };
 
         if ($type->isa('GraphQL::Type::Object')) {
@@ -88,7 +108,7 @@ p $self->{_type_map};
     }
 
     # Enforce correct interface implementations.
-    for my $type_name (@{ $self->{_type_map} }) {
+    for my $type_name (keys %{ $self->{_type_map} }) {
         my $type = $self->{_type_map}{ $type_name };
 
         if ($type->isa('GraphQL::Type::Object')) {
@@ -158,6 +178,9 @@ sub get_directive {
 
 sub type_map_reducer {
     my ($map, $type) = @_;
+# print 'map:'; p $map;
+# print 'type:'; p $type;
+# print "-- -- --\n";
 
     return $map unless $type;
 
@@ -166,39 +189,140 @@ sub type_map_reducer {
     }
 
     if ($map->{ $type->name }) {
-        die   'Schema must contain unique types but contains multiple'
-            . "types named ${ \$type->name }" if $map->{ $type->name } ne $type;
+        die   "Schema must contain unique types but contains multiple"
+            . "types named ${ \$type->name }.\n" if $map->{ $type->name }->to_string ne $type->to_string;
         return $map;
     }
 
     $map->{ $type->name } = $type;
 
-    my $reduced_map = $map; # XXX NOTE ???
-
     if ($type->isa('GraphQL::Type::Union')) {
-        $reduced_map = grep { type_map_reducer($_) } @{ $type->get_types };
-    }
-
-    if ($type->isa('GraphQL::Type::Object')) {
-        $reduced_map = grep { type_map_reducer($_) } @{ $type->get_interfaces };
-    }
-
-    if (   $type->isa('GraphQL::Type::Object')
-        || $type->isa('GraphQL::Type::Interface')) {
-        my $field_map = $type->get_fields;
-
-        for my $field_name (@$field_map) {
-            my $field = $field_map->{ $field_name };
-
-            if ($field->{args}) {
-                my $field_arg_types = { map { $_ => $_->type } $field->{args} };
-                $reduced_map = grep { type_map_reducer($_) } @$field_arg_types;
-            }
+        # %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } @{ $type->get_types };
+        for (@{ $type->get_types }) {
+            $map = type_map_reducer($map, $_);
         }
     }
 
-    return $reduced_map;
+    if ($type->isa('GraphQL::Type::Object')) {
+        # %reduced_map =
+        #     map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () }
+        #     @{ $type->get_interfaces };
+        for (@{ $type->get_interfaces }) {
+            $map = type_map_reducer($map, $_);
+        }
+    }
+
+    if (   $type->isa('GraphQL::Type::Object')
+        || $type->isa('GraphQL::Type::Interface'))
+    {
+        my $field_map = $type->get_fields;
+        p $field_map;
+
+        for my $field_name (keys %$field_map) {
+            my $field = $field_map->{ $field_name };
+
+            if ($field->{args}) {
+                my @field_arg_types = map { $_->{type} } @{ $field->{args} };
+
+                # %reduced_map = map {
+                #     $_->to_string => type_map_reducer(\%reduced_map, $_)
+                # } keys %$field_arg_types;
+                for (@field_arg_types) {
+                    $map = {
+                        %$map,
+                        %{ type_map_reducer($map, $_) },
+                    };
+                }
+            }
+
+            p $field_name;
+            p $field->{type};
+            say '/';
+
+            $map = {
+                %$map,
+                %{ type_map_reducer($map, $field->{type}) },
+            };
+        }
+    }
+
+    if ($type->isa('GraphQL::Type::InputObject')) {
+        my $field_map = $type->get_fields;
+
+        for my $field_name (keys %$field_map) {
+            my $field = $field_map->{ $field_name };
+            $map = {
+                %$map,
+                %{ type_map_reducer($map, $field->{type}) },
+            };
+        }
+    }
+
+    return $map;
 }
+
+# sub old_type_map_reducer {
+#     my ($map, $type) = @_;
+
+#     return $map unless $type;
+# p $map;
+# p $type->to_string;
+# warn '-- -- --';
+
+#     if ($type->isa('GraphQL::Type::List') || $type->isa('GraphQL::Type::NonNull')) {
+#         return type_map_reducer($map, $type->of_type);
+#     }
+
+#     if ($map->{ $type->name }) {
+#         die   'Schema must contain unique types but contains multiple'
+#             . "types named ${ \$type->name }.\n" if $map->{ $type->name }->to_string ne $type->to_string;
+#         return $map;
+#     }
+
+#     $map->{ $type->name } = $type;
+
+#     my %reduced_map = %$map; # XXX NOTE ???
+
+#     if ($type->isa('GraphQL::Type::Union')) {
+#         warn 'u';
+#         %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } @{ $type->get_types };
+#     }
+
+#     if ($type->isa('GraphQL::Type::Object')) {
+#         warn 'o';
+#         %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } @{ $type->get_interfaces };
+#     }
+
+#     if (   $type->isa('GraphQL::Type::Object')
+#         || $type->isa('GraphQL::Type::Interface')) {
+#         my $field_map = $type->get_fields;
+#         warn 1;
+
+#         for my $field_name (keys %$field_map) {
+#             my $field = $field_map->{ $field_name };
+
+#             if ($field->{args}) {
+#                 my $field_arg_types = { map { $_ => $_->{type} } @{ $field->{args} } };
+#                 warn 3;
+#                 %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } keys %$field_arg_types;
+#                 warn 4;
+#             }
+
+#             %reduced_map = type_map_reducer(\%reduced_map, $field->{type});
+#         }
+#     }
+
+#     if ($type->isa('GraphQL::Type::InputObject')) {
+#         my $field_map = $type->get_fields;
+
+#         for my $field_name (keys %$field_map) {
+#             my $field = $field_map->{ $field_name };
+#             %reduced_map = type_map_reducer(\%reduced_map, $field->{type});
+#         }
+#     }
+
+#     return \%reduced_map;
+# }
 
 sub assert_object_implements_interface {
     my ($schema, $object, $iface) = @_;
@@ -217,11 +341,10 @@ sub assert_object_implements_interface {
 
         # Assert interface field type is satisfied by object field type, by being
         # a valid subtype. (covariant)
-        die   qq`${ \$iface->name }.$field_name expects type "${ \$iface_field->type->to_string }" `
+        die   qq`${ \$iface->{name} }.$field_name expects type "${ \$iface_field->{type}->to_string }" `
             . qq`but `
-            . qq`${ \$object->name }.$field_name provides type "${ \$object_field->type->to_string }".`
-            # TODO: func
-            unless is_type_subtype_of($schema, $object_field->type, $iface_field->type);
+            . qq`${ \$object->{name} }.$field_name provides type "${ \$object_field->{type}->to_string }".`
+            unless is_type_subtype_of($schema, $object_field->{type}, $iface_field->{type});
 
         # Assert interface field arg type matches object field arg type.
         # (invariant)

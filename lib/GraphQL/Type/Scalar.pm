@@ -3,6 +3,9 @@ package GraphQL::Type::Scalar;
 use strict;
 use warnings;
 
+sub name { shift->{name} }
+sub description { shift->{description} }
+
 sub new {
     my ($class, %config) = @_;
 
@@ -24,9 +27,6 @@ sub new {
 
     return $self;
 }
-
-sub name { shift->{name} }
-sub description { shift->{description} }
 
 # Serializes an internal value to include a response.
 sub serialize {
