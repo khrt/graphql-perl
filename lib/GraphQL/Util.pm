@@ -7,6 +7,7 @@ use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
     assert_valid_name
+    find
 /);
 
 # Ensures consoles warnigns are only issued once.
@@ -31,6 +32,16 @@ sub assert_valid_name {
     if ($name !~ m/$NAME_RX/) {
         die qq`Names must match /$NAME_RX/ but "$name" does not.`;
     }
+}
+
+sub find {
+    my ($list, $predicate) = @_;
+
+    for my $i (@$list) {
+        return $i if $predicate->($i);
+    }
+
+    return;
 }
 
 1;

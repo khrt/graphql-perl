@@ -21,6 +21,8 @@ use Exporter qw/import/;
 our @EXPORT_OK = (qw/
     GraphQLSchema
 
+    GraphQLDirective
+
     GraphQLScalarType
     GraphQLObjectType
     GraphQLInterfaceType
@@ -36,11 +38,18 @@ our @EXPORT_OK = (qw/
     GraphQLID
     GraphQLInt
     GraphQLString
+
+    GraphQLIncludeDirective
+    GraphQLSkipDirective
+    GraphQLDeprecatedDirective
 /);
+    #GraphQLField
 
 our %EXPORT_TAGS = (
     all => [qw/
         GraphQLSchema
+
+        GraphQLDirective
 
         GraphQLScalarType
         GraphQLObjectType
@@ -57,7 +66,12 @@ our %EXPORT_TAGS = (
         GraphQLID
         GraphQLInt
         GraphQLString
+
+        GraphQLIncludeDirective
+        GraphQLSkipDirective
+        GraphQLDeprecatedDirective
     /],
+        #GraphQLField
 );
 
 use constant {
@@ -83,6 +97,7 @@ sub GraphQLSchema {
     return $schema;
 }
 
+sub GraphQLDirective { GraphQL::Type::Directive->new(@_) }
 sub GraphQLScalarType { GraphQL::Type::Scalar->new(@_) }
 sub GraphQLObjectType { GraphQL::Type::Object->new(@_) }
 sub GraphQLInterfaceType { GraphQL::Type::Interface->new(@_) }
@@ -182,6 +197,91 @@ sub GraphQLString {
         },
     );
 }
+
+# Directives
+
+sub DirectiveLocation { 'GraphQL::Type::Directive' }
+
+# Used to conditionally include fields or fragments.
+sub GraphQLIncludeDirective {
+    GraphQL::Type::Directive->new(
+        name => 'include',
+        description =>
+              'Directs the executor to include this field or fragment only when '
+            . 'the `if` argument is true.',
+        locations => [
+            DirectiveLocation->FIELD,
+            DirectiveLocation->FRAGMENT_SPREAD,
+            DirectiveLocation->INLINE_FRAGMENT,
+        ],
+        args => {
+            if => {
+                type => GraphQLNonNull(GraphQLBoolean),
+                description => 'Included when true.',
+            },
+        },
+    );
+}
+
+# Used to conditionally skip (exclude) fields or fragments.
+sub GraphQLSkipDirective {
+    GraphQL::Type::Directive->new(
+        name => 'skip',
+        description =>
+              'Directs the executor to skip this field or fragment when the `if` '
+            . 'argument is true.',
+        locations => [
+            DirectiveLocation->FIELD,
+            DirectiveLocation->FRAGMENT_SPREAD,
+            DirectiveLocation->INLINE_FRAGMENT,
+        ],
+        args => {
+            if => {
+                type => GraphQLNonNull(GraphQLBoolean),
+                description => 'Skipped when true.',
+            },
+        },
+    );
+}
+
+# Used to declare element of a GraphQL schema as deprecated.
+sub GraphQLDeprecatedDirective {
+    GraphQL::Type::Directive->new(
+        name => 'deprecated',
+        description =>
+              'Explains why this element was deprecated, usually also including a '
+            . 'suggestion for how to access supported similar data. Formatted '
+            . 'in [Markdown](https://daringfireball.net/projects/markdown/).',
+        locations => [
+            DirectiveLocation->FIELD_DEFINITION,
+            DirectiveLocation->ENUM_VALUE,
+        ],
+        args => {
+            reason => {
+                type => GraphQLString,
+                description =>
+                      'Explains why this element was deprecated, usually also including a '
+                    . 'suggestion for how to access supported similar data. Formatted '
+                    . 'in [Markdown](https://daringfireball.net/projects/markdown/).',
+                default_value => 'No longer supported',
+            }
+        },
+    );
+}
+
+# Other
+# sub GraphQLField {
+#     my %config = @_;
+#     return {
+#         name => $config{name},
+#         description => $config{description},
+#         # type => GraphQLOutputType,
+#         args => $config{args} || [],
+#         resolve => undef,
+#         is_deprecated => undef,
+#         deprecation_reason => undef,
+#     }
+# }
 
 # Coercions
 sub coerce_int {

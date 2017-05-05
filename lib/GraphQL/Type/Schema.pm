@@ -21,14 +21,15 @@ use DDP {
         'GraphQL::Type::NonNull'     => sub { shift->to_string },
         'GraphQL::Type::Object'      => sub { shift->to_string },
         'GraphQL::Type::Scalar'      => sub { shift->to_string },
-        'GraphQL::Type::Schema'      => sub { shift->to_string },
         'GraphQL::Type::Union'       => sub { shift->to_string },
         },
     caller_info => 0,
 };
 
 use GraphQL::Type::Introspection qw/__Schema/;
+use GraphQL::Util qw/find/;
 use GraphQL::Util::Type qw/is_type_subtype_of/;
+use GraphQL::Util::TypeComparators qw/is_equal_type/;
 
 sub specified_directives { 'specified_directives' }
 
@@ -151,8 +152,8 @@ sub is_possible_type {
         my $possible_types = $self->get_possible_types($abstract_type);
 
         die   "Could not find possible implementing types for ${ \$abstract_type->name } "
-            . 'in schem. Check that schema.types is defined and is an array of '
-            . 'all possible types in the schema.' if ref($possible_types) ne 'ARRAY';
+            . "in schema. Check that schema.types is defined and is an array of "
+            . "all possible types in the schema.\n" if ref($possible_types) ne 'ARRAY';
 
 die 'TODO';
         $possible_type_map->{ $abstract_type->name } = \grep {
@@ -275,32 +276,34 @@ sub assert_object_implements_interface {
         # Assert interface field arg type matches object field arg type.
         # (invariant)
         for my $iface_arg (@{ $iface_field->{args} }) {
-            my $arg_name = $iface_arg->name;
-            my $object_arg = find($object_field->{args}, sub { shift->name eq $arg_name });
+            my $arg_name = $iface_arg->{name};
+            my $object_arg =
+                find($object_field->{args}, sub { shift->{name} eq $arg_name });
 
             # Assert interface field arg exists on object field.
-            die   qq`${ \$iface->name}.$field_name expects argument "$arg_name" but `
-                . qq`${ \$object->name}.$field_name does not provide it.` unless $object_arg;
+            die   qq`${ \$iface->name }.$field_name expects argument "$arg_name" but `
+                . qq`${ \$object->name }.$field_name does not provide it.` unless $object_arg;
 
             # Assert interface field arf type matches object field arg type.
             # (invariant)
             die   qq`${ \$iface->name }.$field_name($arg_name:) expects type `
-                . qq`"${ \$iface_arg->type->to_string }" but `
+                . qq`"${ \$iface_arg->{type}->to_string }" but `
                 . qq`${ \$object->name }.$field_name($arg_name:) provides type `
-                . qq`"${ \$object_arg->type->to_string }".`
-                unless is_equal_type($iface_arg->type, $object_arg->type);
+                . qq`"${ \$object_arg->{type}->to_string }".`
+                unless is_equal_type($iface_arg->{type}, $object_arg->{type});
         }
 
         # Assert additional arguments must not be required.
         for my $object_arg (@{ $object_field->{args} }) {
-            my $arg_name = $object_arg->name;
-            my $iface_arg = find($iface_field->{args}, sub { shift->name eq $arg_name });
+            my $arg_name = $object_arg->{name};
+            my $iface_arg =
+                find($iface_field->{args}, sub { shift->{name} eq $arg_name });
 
             if (!$iface_arg) {
                 die   qq`${ \$object->name }.$field_name($arg_name:) is of required type `
-                    . qq`"${ \$object_arg->type->to_string }" but is not also provided by the `
+                    . qq`"${ \$object_arg->{type}->to_string }" but is not also provided by the `
                     . qq`interface ${ \$iface->name }.$field_name.`
-                    if $object_arg->type->isa('GraphQL::Type::NonNull');
+                    if $object_arg->{type}->isa('GraphQL::Type::NonNull');
             }
         }
     }

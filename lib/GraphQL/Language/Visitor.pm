@@ -239,7 +239,7 @@ NEXT:
                 $d->Indent(0);
                 $d->Terse(1);
 
-                die 'Invalid AST Node: ' . $d->Dump, "\n";
+                die 'Invalid AST Node: ' . $d->Dump . "\n";
             }
 
             my $visit_fn = &get_visit_fn($visitor, $node->{kind}, $is_leaving);

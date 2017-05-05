@@ -25,6 +25,10 @@ our @EXPORT_OK = (qw/
     __InputValue
     __EnumValue
     __TypeKind
+
+    SchemaMetaFieldDef
+    TypeMetaFieldDef
+    TypeNameMetaFieldDef
 /);
 
 use GraphQL::Language::Printer qw/print_doc/;
@@ -40,7 +44,6 @@ use GraphQL::Type qw/
 
     GraphQLString
     GraphQLBoolean
-
 /;
 
     # GraphQLField
