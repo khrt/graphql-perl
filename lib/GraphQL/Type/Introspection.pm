@@ -3,6 +3,30 @@ package GraphQL::Type::Introspection;
 use strict;
 use warnings;
 
+use constant {
+    SCALAR => 'SCALAR',
+    OBJECT => 'OBJECT',
+    INTERFACE => 'INTERFACE',
+    UNION => 'UNION',
+    ENUM => 'ENUM',
+    INPUT_OBJECT => 'INPUT_OBJECT',
+    LIST => 'LIST',
+    NON_NULL => 'NON_NULL',
+};
+
+use Exporter qw/import/;
+
+our @EXPORT_OK = (qw/
+    __Schema
+    __Directive
+    __DirectiveLocation
+    __Type
+    __Field
+    __InputValue
+    __EnumValue
+    __TypeKind
+/);
+
 use GraphQL::Language::Printer qw/print_doc/;
 use GraphQL::Type qw/
     GraphQLScalarType
@@ -18,24 +42,13 @@ use GraphQL::Type qw/
     GraphQLBoolean
 
 /;
+
     # GraphQLField
 
-    # DirectiveLocation
+use GraphQL::Type::Directive;
+use GraphQL::Util::Type qw/is_abstract_type/;
 
-use Exporter qw/import/;
-
-our @EXPORT_OK = (qw/
-    __Schema
-    __Directive
-    __DirectiveLocation
-    __Type
-    __Field
-    __InputValue
-    __EnumValue
-    __TypeKind
-
-    TypeKind
-/);
+sub DirectiveLocation { 'GraphQL::Type::Directive' }
 
 sub __TypeKind {
     GraphQLEnumType(
@@ -44,57 +57,46 @@ sub __TypeKind {
         description => 'An enum describing what kind of type a given `__Type` is.',
         values => {
             SCALAR => {
-                value => 'SCALAR',
+                value => SCALAR,
                 description => 'Indicates this type is a scalar.'
             },
             OBJECT => {
-                value => 'OBJECT',
+                value => OBJECT,
                 description => 'Indicates this type is an object. '
                              . '`fields` and `interfaces` are valid fields.'
             },
             INTERFACE => {
-                value => 'INTERFACE',
+                value => INTERFACE,
                 description => 'Indicates this type is an interface. '
                              . '`fields` and `possibleTypes` are valid fields.'
             },
             UNION => {
-                value => 'UNION',
+                value => UNION,
                 description => 'Indicates this type is a union. '
                              . '`possibleTypes` is a valid field.'
             },
             ENUM => {
-                value => 'ENUM',
+                value => ENUM,
                 description => 'Indicates this type is an enum. '
                              . '`enumValues` is a valid field.'
             },
             INPUT_OBJECT => {
-                value => 'INPUT_OBJECT',
+                value => INPUT_OBJECT,
                 description => 'Indicates this type is an input object. '
                              . '`inputFields` is a valid field.'
             },
             LIST => {
-                value => 'LIST',
+                value => LIST,
                 description => 'Indicates this type is a list. '
                              . '`ofType` is a valid field.'
             },
             NON_NULL => {
-                value => 'NON_NULL',
+                value => NON_NULL,
                 description => 'Indicates this type is a non-null. '
                              . '`ofType` is a valid field.'
             },
         },
     );
-}
-
-sub TypeKind {
-  # SCALAR: 'SCALAR',
-  # OBJECT: 'OBJECT',
-  # INTERFACE: 'INTERFACE',
-  # UNION: 'UNION',
-  # ENUM: 'ENUM',
-  # INPUT_OBJECT: 'INPUT_OBJECT',
-  # LIST: 'LIST',
-  # NON_NULL: 'NON_NULL',
 }
 
 sub __EnumValue {
@@ -191,29 +193,29 @@ sub __Type {
                 resolve => sub {
                     my (undef, $type) = @_;
 
-                    if ($type->isa(GraphQLScalarType)) {
-                        return TypeKind->SCALAR;
+                    if ($type->isa('GraphQL::Type::Scalar')) {
+                        return SCALAR;
                     }
-                    elsif ($type->isa(GraphQLObjectType)) {
-                        return TypeKind->OBJECT;
+                    elsif ($type->isa('GraphQL::Type::Object')) {
+                        return OBJECT;
                     }
-                    elsif ($type->isa(GraphQLInterfaceType)) {
-                        return TypeKind->INTERFACE;
+                    elsif ($type->isa('GraphQL::Type::Interface')) {
+                        return INTERFACE;
                     }
-                    elsif ($type->isa(GraphQLUnionType)) {
-                        return TypeKind->UNION;
+                    elsif ($type->isa('GraphQL::Type::Union')) {
+                        return UNION;
                     }
-                    elsif ($type->isa(GraphQLEnumType)) {
-                        return TypeKind->ENUM;
+                    elsif ($type->isa('GraphQL::Type::Enum')) {
+                        return ENUM;
                     }
-                    elsif ($type->isa(GraphQLInputObjectType)) {
-                        return TypeKind->INPUT_OBJECT;
+                    elsif ($type->isa('GraphQL::Type::InputObject')) {
+                        return INPUT_OBJECT;
                     }
-                    elsif ($type->isa(GraphQLList)) {
-                        return TypeKind->LIST;
+                    elsif ($type->isa('GraphQL::Type::List')) {
+                        return LIST;
                     }
-                    elsif ($type->isa(GraphQLNonNull)) {
-                        return TypeKind->NON_NULL;
+                    elsif ($type->isa('GraphQL::Type::NonNull')) {
+                        return NON_NULL;
                     }
 
                     die "Unknown kind of type => $type";
@@ -264,9 +266,7 @@ sub __Type {
                     my (undef, $type, $args, $context, $xxx) = @_;
                     my $schema = $xxx->{schema};
 
-                    if (   $type->isa(GraphQLInterfaceType)
-                        || $type->isa(GraphQLUnionType))
-                    {
+                    if (is_abstract_type($type)) {
                         return $schema->get_possible_types($type);
                     }
 

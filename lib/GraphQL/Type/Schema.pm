@@ -84,7 +84,6 @@ sub new {
             %{ type_map_reducer({}, $_) },
         };
     }
-    print 'typemap:'; p $self->{_type_map};
 
     # Keep track of all implementations by interface name.
     $self->{_implementations} = {};
@@ -155,6 +154,7 @@ sub is_possible_type {
             . 'in schem. Check that schema.types is defined and is an array of '
             . 'all possible types in the schema.' if ref($possible_types) ne 'ARRAY';
 
+die 'TODO';
         $possible_type_map->{ $abstract_type->name } = \grep {
             1
             # TODO: (map, type) => ((map[type.name] = true), map),
@@ -176,9 +176,6 @@ sub get_directive {
 
 sub type_map_reducer {
     my ($map, $type) = @_;
-# print 'map:'; p $map;
-# print 'type:'; p $type;
-# print "-- -- --\n";
 
     return $map unless $type;
 
@@ -195,7 +192,6 @@ sub type_map_reducer {
     $map->{ $type->name } = $type;
 
     if ($type->isa('GraphQL::Type::Union')) {
-        # %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } @{ $type->get_types };
         for (@{ $type->get_types }) {
             $map = {
                 %$map,
@@ -205,9 +201,6 @@ sub type_map_reducer {
     }
 
     if ($type->isa('GraphQL::Type::Object')) {
-        # %reduced_map =
-        #     map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () }
-        #     @{ $type->get_interfaces };
         for (@{ $type->get_interfaces }) {
             $map = {
                 %$map,
@@ -227,9 +220,6 @@ sub type_map_reducer {
             if ($field->{args}) {
                 my @field_arg_types = map { $_->{type} } @{ $field->{args} };
 
-                # %reduced_map = map {
-                #     $_->to_string => type_map_reducer(\%reduced_map, $_)
-                # } keys %$field_arg_types;
                 for (@field_arg_types) {
                     $map = {
                         %$map,
@@ -259,69 +249,6 @@ sub type_map_reducer {
 
     return $map;
 }
-
-# sub old_type_map_reducer {
-#     my ($map, $type) = @_;
-
-#     return $map unless $type;
-# p $map;
-# p $type->to_string;
-# warn '-- -- --';
-
-#     if ($type->isa('GraphQL::Type::List') || $type->isa('GraphQL::Type::NonNull')) {
-#         return type_map_reducer($map, $type->of_type);
-#     }
-
-#     if ($map->{ $type->name }) {
-#         die   'Schema must contain unique types but contains multiple'
-#             . "types named ${ \$type->name }.\n" if $map->{ $type->name }->to_string ne $type->to_string;
-#         return $map;
-#     }
-
-#     $map->{ $type->name } = $type;
-
-#     my %reduced_map = %$map; # XXX NOTE ???
-
-#     if ($type->isa('GraphQL::Type::Union')) {
-#         warn 'u';
-#         %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } @{ $type->get_types };
-#     }
-
-#     if ($type->isa('GraphQL::Type::Object')) {
-#         warn 'o';
-#         %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } @{ $type->get_interfaces };
-#     }
-
-#     if (   $type->isa('GraphQL::Type::Object')
-#         || $type->isa('GraphQL::Type::Interface')) {
-#         my $field_map = $type->get_fields;
-#         warn 1;
-
-#         for my $field_name (keys %$field_map) {
-#             my $field = $field_map->{ $field_name };
-
-#             if ($field->{args}) {
-#                 my $field_arg_types = { map { $_ => $_->{type} } @{ $field->{args} } };
-#                 warn 3;
-#                 %reduced_map = map { $_->to_string => type_map_reducer(\%reduced_map, $_) || () } keys %$field_arg_types;
-#                 warn 4;
-#             }
-
-#             %reduced_map = type_map_reducer(\%reduced_map, $field->{type});
-#         }
-#     }
-
-#     if ($type->isa('GraphQL::Type::InputObject')) {
-#         my $field_map = $type->get_fields;
-
-#         for my $field_name (keys %$field_map) {
-#             my $field = $field_map->{ $field_name };
-#             %reduced_map = type_map_reducer(\%reduced_map, $field->{type});
-#         }
-#     }
-
-#     return \%reduced_map;
-# }
 
 sub assert_object_implements_interface {
     my ($schema, $object, $iface) = @_;

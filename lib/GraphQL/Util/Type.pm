@@ -51,11 +51,12 @@ sub assert_type {
 
 sub is_input_type {
     my $type = shift;
-    my $named_type = get_named_type($type);
     return
-           $named_type->isa('GraphQL::Type::Scalar')
-        || $named_type->isa('GraphQL::Type::Enum')
-        || $named_type->isa('GraphQL::Type::InputObject');
+           $type->isa('GraphQL::Type::Scalar')
+        || $type->isa('GraphQL::Type::Enum')
+        || $type->isa('GraphQL::Type::InputObject')
+        || $type->isa('GraphQL::Type::NonNull') && is_input_type($type->of_type)
+        || $type->isa('GraphQL::Type::List') && is_input_type($type->of_type);
 }
 
 sub assert_input_type {
@@ -66,13 +67,14 @@ sub assert_input_type {
 
 sub is_output_type {
     my $type = shift;
-    my $named_type = get_named_type($type);
     return
-           $named_type->isa('GraphQL::Type::Scalar')
-        || $named_type->isa('GraphQL::Type::Object')
-        || $named_type->isa('GraphQL::Type::Interface')
-        || $named_type->isa('GraphQL::Type::Union')
-        || $named_type->isa('GraphQL::Type::Enum');
+           $type->isa('GraphQL::Type::Scalar')
+        || $type->isa('GraphQL::Type::Object')
+        || $type->isa('GraphQL::Type::Interface')
+        || $type->isa('GraphQL::Type::Union')
+        || $type->isa('GraphQL::Type::Enum')
+        || $type->isa('GraphQL::Type::NonNull') && is_output_type($type->of_type)
+        || $type->isa('GraphQL::Type::List') && is_output_type($type->of_type);
 }
 
 sub assert_output_type {
@@ -229,6 +231,9 @@ sub define_enum_values {
     my @values;
     for my $value_name (@value_names) {
         assert_valid_name($value_name);
+        die qq`Name "$value_name" can not be used as an Enum value.\n`
+            if scalar grep { $_ eq $value_name } qw/true false null/;
+
         my $value = $value_map->{$value_name};
 
         die   qq`$type->{name}.$value_name must refer to an object with a "value" key `
@@ -319,17 +324,23 @@ sub define_interfaces {
     return [] unless $interfaces;
 
     die   qq`$type->{name} intrefaces must be an Array or a function returns `
-        . qq`an Array.` if ref($interfaces) ne 'ARRAY';
+        . qq`an Array.\n` if ref($interfaces) ne 'ARRAY';
 
+    my %implemented_type_names;
     for my $iface (@$interfaces) {
         die   qq`$type->{name} may only implement Interface types, it cannot `
-            . qq`implement: $iface` unless $iface->isa('GraphQL::Type::Interface');
+            . qq`implement: ${ \$iface->to_string }\n` unless $iface->isa('GraphQL::Type::Interface');
+
+        die "$type->{name} may declare it implements $iface->{name} only once.\n"
+            if $implemented_type_names{ $iface->name };
+
+        $implemented_type_names{ $iface->name } = 1;
 
         if (ref($iface->{resolve_type}) ne 'CODE') {
             die   qq`Interface Type "$iface->{name}" does not provide a "resolve_type" `
                 . qq`function and implementing Type "$type->{name}" does not provide a `
                 . qq`"is_type_of" function. There is no way to resolve this implementing `
-                . qq`type during exection.` if ref($type->{is_type_of}) ne 'CODE';
+                . qq`type during exection.\n` if ref($type->{is_type_of}) ne 'CODE';
         }
     }
 
@@ -341,17 +352,23 @@ sub define_types {
     my $types = resolve_thunk($types_thunk);
 
     die   qq`Must provide Array of type or a function which returns `
-        . qq`such an array for Union $union_type->{name}.` if ref($types) ne 'ARRAY' || !scalar(@$types);
+        . qq`such an array for Union $union_type->{name}.\n` if ref($types) ne 'ARRAY' || !scalar(@$types);
 
+    my %included_type_names;
     for my $obj_type (@$types) {
         die   qq`$union_type->{name} may only contain Object types, it cannot contain: `
             . qq`${ \$obj_type->to_string }.\n` unless $obj_type->isa('GraphQL::Type::Object');
+
+        die "$union_type->{name} can include $obj_type->{name} type only once.\n"
+            if $included_type_names{ $obj_type->name };
+
+        $included_type_names{ $obj_type->name } = 1;
 
         if (ref($union_type->{resolve_type}) ne 'CODE') {
             die   qq`Union type "$union_type->{name}" does not provide a "resolve_type" `
                 . qq`function and possible type "$obj_type->{name}" does not provide an `
                 . qq`"is_type_of" function. There is no way to resolve this possible type `
-                . qq`during exection.` if $obj_type->{is_type_of} ne 'CODE';
+                . qq`during exection.\n` if ref($obj_type->{is_type_of}) ne 'CODE';
         }
     }
 
