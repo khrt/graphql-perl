@@ -23,6 +23,8 @@ sub new {
         _name_lookup => undef,
     }, $class;
 
+    # NOTE: RANDOM ORDER OF VALUES
+    # NOTE: random order; makes an array from a hash
     $self->{_values} = define_enum_values($self, $config{values});
 
     return $self;
@@ -66,8 +68,7 @@ sub parse_literal {
 sub _get_value_lookup {
     my $self = shift;
     if (!$self->{_value_lookup}) {
-        # TODO:
-        my %lookup = map { $_->value => $_ } %{ $self->get_values };
+        my %lookup = map { $_->value => $_ } @{ $self->get_values };
         $self->{_value_lookup} = \%lookup;
     }
     return $self->{_value_lookup};
@@ -76,8 +77,7 @@ sub _get_value_lookup {
 sub _get_name_lookup {
     my $self = shift;
     if (!$self->{_name_lookup}) {
-        # TODO:
-        my %lookup = map { $_->name => $_ } %{ $self->get_values };
+        my %lookup = map { $_->{name} => $_ } @{ $self->get_values };
         $self->{_name_lookup} = \%lookup;
     }
     return $self->{_name_lookup};
