@@ -18,7 +18,10 @@ our @EXPORT_OK = (qw/
     is_composite_type assert_composite_type
     is_abstract_type  assert_abstract_type
     is_named_type     assert_named_type
+
     get_named_type
+    get_nullable_type
+
     resolve_thunk
 
     is_plain_obj
@@ -28,6 +31,7 @@ our @EXPORT_OK = (qw/
     define_field_map
     define_interfaces
     define_types
+
 /);
 
 sub is_type {
@@ -149,6 +153,11 @@ sub get_named_type {
         $unmodified_type = $unmodified_type->of_type;
     }
     return $unmodified_type;
+}
+
+sub get_nullable_type {
+    my $type = shift;
+    return $type->isa('GraphQL::Type::NonNull') ? $type->of_type : $type;
 }
 
 # Used while defining GraphQL types to allow for circular references in

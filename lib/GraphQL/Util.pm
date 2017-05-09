@@ -8,6 +8,11 @@ use Exporter qw/import/;
 our @EXPORT_OK = (qw/
     assert_valid_name
     find
+
+    quoted_or_list
+    suggestion_list
+
+    type_from_ast
 /);
 
 # Ensures consoles warnigns are only issued once.
@@ -42,6 +47,18 @@ sub find {
     }
 
     return;
+}
+
+sub quoted_or_list {
+    die
+}
+
+sub suggestion_list {
+    die
+}
+
+sub type_from_ast {
+    die
 }
 
 1;
