@@ -24,10 +24,11 @@ sub type_incompatible_anon_spread_message {
 # be true: if there is a non-empty intersection of the possible parent types,
 # and possible types which pass the type condition->
 sub validate {
-    my ($context) = @_;
+    my ($self, $context) = @_;
     return {
         InlineFragment => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
+
             my $frag_type = $context->get_type;
             my $parent_type = $context->get_parent_type;
 
@@ -40,9 +41,12 @@ sub validate {
                     [$node]
                 );
             }
+
+            return; # void
         },
         FragmentSpread => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
+
             my $frag_name = $node->name->value;
             my $frag_type = get_fragment_type($context, $frag_name);
             my $parent_type = $context->get_parent_type;
@@ -56,6 +60,8 @@ sub validate {
                     [$node]
                 );
             }
+
+            return; # void
         },
     };
 }

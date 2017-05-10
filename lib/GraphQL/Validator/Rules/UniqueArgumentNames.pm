@@ -13,17 +13,19 @@ sub duplicate_arg_message {
 # A GraphQL field or directive is only valid if all supplied arguments are
 # uniquely named.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     my %known_arg_names;
     return {
         Field => sub {
             %known_arg_names = ();
+            return; # void
         },
         Directive => sub {
             %known_arg_names = ();
+            return; # void
         },
         Argument => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             my $arg_name = $node->{name}{value};
 
             if ($known_arg_names{ $arg_name }) {

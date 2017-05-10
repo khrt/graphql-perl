@@ -15,17 +15,18 @@ sub unsed_variable_message {
 # A GraphQL operation is only valid if all variables defined by an operation
 # are used, either directly or within a spread fragment.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     my @variables_defs;
 
     return {
         OperationDefinition => sub {
             enter => sub {
                 @variables_defs = ();
-                # TODO return;
+                return; # void
             },
             leave => sub {
-                my $operation = shift;
+                my (undef, $operation) = @_;
+
                 my %variable_name_used;
                 my $usages = $context->get_recursive_variable_usages($operation);
                 my $op_name = $operation->{name} ? $operation->{name}{value} : undef;
@@ -46,12 +47,13 @@ sub validate {
                     }
                 }
 
-                # TODO return;
+                return; # void
             },
         },
         VariableDefinition => sub {
-            my $def = shift;
+            my (undef, $def) = @_;
             push @variables_defs, $def;
+            return; # void
         },
     };
 }

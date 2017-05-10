@@ -5,7 +5,7 @@ use warnings;
 
 use feature 'say';
 use DDP {
-    max_depth => 1,
+    # max_depth => 1,
 };
 
 use GraphQL::Type::Introspection qw/
@@ -183,9 +183,9 @@ sub enter {
         my $object_type = get_named_type($self->get_input_type);
         my $field_type;
 
-        if ($object_type->isa('GraphQL::Type::InputObject')) {
-            my $input_field =$object_type->get_fields->{ $node->{name}{value} };
-            my $field_type = $input_field ? $input_field->{type} : undef;
+        if ($object_type && $object_type->isa('GraphQL::Type::InputObject')) {
+            my $input_field = $object_type->get_fields->{ $node->{name}{value} };
+            $field_type = $input_field ? $input_field->{type} : undef;
         }
 
         push @{ $self->{_input_type_stack} }, $field_type;

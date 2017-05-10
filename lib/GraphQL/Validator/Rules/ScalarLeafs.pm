@@ -25,12 +25,13 @@ sub required_subselection_message {
 # A graph_qL document is valid only if all leaf fields (fields without
 # sub selections) are of scalar or enum types.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
 
     return {
         Field => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             my $type = $context->get_type;
+
             if ($type) {
                 if (is_leaf_type(get_named_type($type))) {
                     if ($node->{selection_set}) {
@@ -47,7 +48,8 @@ sub validate {
                     );
                 }
             }
-            #TODO return
+
+            return; # void
         },
     };
 }

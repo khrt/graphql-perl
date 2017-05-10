@@ -10,7 +10,7 @@ sub cycle_error_message {
 }
 
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
 
     # Tracks already visited fragments to maintain O(N) and to ensure that
     # cycles are not redundantly reported.
@@ -75,10 +75,12 @@ sub validate {
     return {
         OperationDefinition => sub { return },
         FragmentDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
+
             if (!$visited_frags{ $node->{name}{value} }) {
                 $detect_cycle_recursive->($node);
             }
+
             return; # false
         },
     };

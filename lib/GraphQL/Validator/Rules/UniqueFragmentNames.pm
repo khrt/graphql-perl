@@ -12,13 +12,13 @@ sub duplicate_fragment_name_message {
 #
 # A GraphQL document is only valid if all defined fragments have unique names.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     my %known_fragment_names;
 
     return {
         OperationDefinition => sub { return }, #false,
         FragmentDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             my $fragment_name = $node->{name}{value};
 
             if ($known_fragment_names{ $fragment_name }) {
@@ -35,7 +35,6 @@ sub validate {
         },
     };
 }
-
 
 1;
 

@@ -5,7 +5,7 @@ use warnings;
 
 sub duplicate_input_field_message {
     my $field_name = shift;
-    return qq`There can be only one input field named "${field_name}".`;
+    return qq`There can be only one input field named "$field_name".`;
 }
 
 # Unique input field names
@@ -14,6 +14,7 @@ sub duplicate_input_field_message {
 # uniquely named.
 sub validate {
     my $context = shift;
+
     my @known_name_stack;
     my %known_names;
 
@@ -22,9 +23,11 @@ sub validate {
             enter => sub {
                 push @known_name_stack, %known_names;
                 %known_names = ();
+                return; # void
             },
             leave => sub {
                 %known_names = pop @known_name_stack;
+                return; # void
             }
         },
         ObjectField => sub {
@@ -45,7 +48,6 @@ sub validate {
         },
     };
 }
-
 
 1;
 

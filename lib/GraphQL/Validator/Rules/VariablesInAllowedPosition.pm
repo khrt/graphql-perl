@@ -14,13 +14,14 @@ sub bad_var_pos_message {
 
 # Variables passed to field arguments conform to type
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     my %var_def_map;
 
     return {
         OperationDefinition => {
             enter => sub {
                 %var_def_map = ();
+                return; # void
             },
             leave => sub {
                 my $operation = shift;
@@ -51,13 +52,13 @@ sub validate {
                     }
                 };
 
-                #TODO return
+                return; # void
             }
         },
         VariableDefinition => sub {
             my $node = shift;
             $var_def_map{ $node->{variable}{name}{value} } = $node;
-            #TODO return
+            return; # void
         },
     };
 }

@@ -13,17 +13,17 @@ sub unsed_frag_message {
 # A GraphQL document is only valid if all fragment definitions are spread
 # within operations, or spread within other fragments spread within operations.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     my (@operation_defs, @fragment_defs);
 
     return {
         OperationDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             push @operation_defs, $node;
             return; # false
         },
         FragmentDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             push @fragment_defs, $node;
             return; # false
         },
@@ -32,7 +32,6 @@ sub validate {
                 my %fragment_name_used;
                 for my $operation (@operation_defs) {
                     my $frags = $context->get_recursively_referenced_fragments($operation);
-
                     for my $frag (@$frags) {
                         $fragment_name_used{ $frag->{name}{value} } = 1;
                     }
@@ -40,7 +39,6 @@ sub validate {
 
                 for my $frag_def (@fragment_defs) {
                     my $frag_name = $frag_def->{name}{value};
-
                     unless ($fragment_name_used{ $frag_name }) {
                         $context->report_error(
                             unsed_frag_message($frag_name),
@@ -49,7 +47,7 @@ sub validate {
                     }
                 }
 
-                #TODO return
+                return; # void
             },
         },
     };

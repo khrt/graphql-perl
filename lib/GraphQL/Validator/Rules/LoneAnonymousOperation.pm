@@ -16,24 +16,29 @@ sub anon_operation_not_alone_message {
 # A GraphQL document is only valid if when it contains an anonymous operation
 # (the query short-hand) that it contains only that one operation definition.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     my $operation_count = 0;
 
     return {
         Document => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             $operation_count =
                 scalar grep { $_->{kind} eq Kind->OPERATION_DEFINITION }
                 @{ $node->{definitions} };
+
+            return; # void
         },
         OperationDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
+
             if (!$node->{name} && $operation_count > 1) {
                 $context->report_error(
                     anon_operation_not_alone_message,
                     [$node]
                 );
             }
+
+            return; # void
         },
     };
 }

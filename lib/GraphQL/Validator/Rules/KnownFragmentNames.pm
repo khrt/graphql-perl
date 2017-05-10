@@ -13,10 +13,11 @@ sub unknown_fragment_message {
 # A GraphQL document is only valid if all `...Fragment` fragment spreads refer
 # to fragments defined in the same document.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         FragmentSpread => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
+
             my $frag_name = $node->{name}{value};
             my $frag = $context->get_fragment($frag_name);
 
@@ -27,7 +28,7 @@ sub validate {
                 );
             }
 
-            # return?
+            return; # void
         }
     };
 }

@@ -38,10 +38,10 @@ sub unknown_directive_arg_message {
 # A GraphQL field is only valid if all supplied arguments are defined by
 # that field.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         Argument => sub {
-            my ($node, $key, $parent, $path, $ancestors) = @_;
+            my (undef, $node, $key, $parent, $path, $ancestors) = @_;
             my $argument_of = $ancestors->[scalar(@$ancestors) - 1];
 
             if ($argument_of->{kind} eq Kind->FIELD) {
@@ -95,7 +95,7 @@ sub validate {
                 }
             }
 
-            # TODO return undef?
+            return; # void
         }
     }
 }

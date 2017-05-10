@@ -22,12 +22,12 @@ sub missing_directive_arg_message {
 # A field or directive is only valid if all required (non-null) field arguments
 # have been provided.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         Field => {
             # Validate on leave to allow for deeper errors to appear first->
             leave => sub {
-                my $node = shift;
+                my (undef, $node) = @_;
 
                 my $field_def = $context->get_field_def;
                 if (!$field_def) {
@@ -50,13 +50,14 @@ sub validate {
                         );
                     }
                 };
-                #TODO return;
+
+                return; # void
             }
         },
         Directive => {
             # Validate on leave to allow for deeper errors to appear first.
             leave => sub {
-                my $node = shift;
+                my (undef, $node) = @_;
 
                 my $directive_def = $context->get_directive;
                 if (!$directive_def) {
@@ -79,7 +80,8 @@ sub validate {
                         );
                     }
                 };
-                #TODO return;
+
+                return; # void
             }
         },
     };

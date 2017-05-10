@@ -12,7 +12,7 @@ sub duplicate_operation_name_message {
 #
 # A GraphQL document is only valid if all defined operations have unique names.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     my %known_operation_names;
 
     return {

@@ -3,7 +3,7 @@ package GraphQL::Validator::Rules::KnownTypeNames;
 use strict;
 use warnings;
 
-use GraphQL::Util qw/quoted_or_list/;
+use GraphQL::Util qw/quoted_or_list suggestion_list/;
 
 sub unknown_type_message {
     my ($type, $suggested_types) = @_;
@@ -21,7 +21,7 @@ sub unknown_type_message {
 # A GraphQL document is only valid if referenced types (specifically
 # variable definitions and fragment conditions) are defined by the type schema.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         # TODO: when validating IDL, re-enable these. Experimental version does not
         # add unreferenced types, resulting in false-positive errors. Squelched
@@ -31,7 +31,8 @@ sub validate {
         UnionTypeDefinition => sub { return },
         InputObjectTypeDefinition => sub { return },
         NamedType => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
+
             my $schema = $context->get_schema;
             my $type_name = $node->{name}{value};
             my $type = $schema->get_type($type_name);

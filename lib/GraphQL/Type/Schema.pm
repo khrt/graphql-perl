@@ -7,7 +7,7 @@ use feature 'say';
 
 use DDP {
     indent => 2,
-    max_depth => 3,
+    # max_depth => 3,
     index => 0,
     class => {
         internals => 0,

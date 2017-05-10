@@ -29,12 +29,12 @@ sub undefined_field_message {
 # A GraphQL document is only valid if all fields selected are defined by the
 # parent type, or are an allowed meta field such as __typename.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         Field => sub {
-            my $node = shift;
-            my $type = $context->get_parent_type;
+            my (undef, $node) = @_;
 
+            my $type = $context->get_parent_type;
             if ($type) {
                 my $field_def = $context->get_field_def;
                 unless ($field_def) {

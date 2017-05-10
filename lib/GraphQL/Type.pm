@@ -113,10 +113,10 @@ sub GraphQLBoolean {
     GraphQL::Type::Scalar->new(
         name => 'Boolean',
         description => 'The `Boolean` scalar type represents `true` or `false`.',
-        serialize => sub { $_[1] ? 1 : 0 },
-        parse_value => sub { $_[1] ? 1 : 0 },
+        serialize => sub { $_[0] ? 1 : 0 },
+        parse_value => sub { $_[0] ? 1 : 0 },
         parse_literal => sub {
-            my ($ast) = shift;
+            my $ast = shift;
             return $ast->{kind} eq Kind->BOOLEAN ? $ast->{value} : undef;
         },
     );
@@ -132,7 +132,7 @@ sub GraphQLFloat {
         serialize => \&coerce_float,
         parse_value => \&coerce_float,
         parse_literal => sub {
-            my $ast = $_[1];
+            my $ast = shift;
             return $ast->{kind} eq Kind->FLOAT || $ast->{kind} eq Kind->INT
                 ? $ast->{value}
                 : undef;
@@ -149,10 +149,10 @@ sub GraphQLID {
             . 'response as a String; however, it is not intended to be human-readable. '
             . 'When expected as an input type, any string (such as `"4"`) or integer '
             . '(such as `4`) input value will be accepted as an ID.',
-        serialize => sub { $_[1] },
-        parse_value => sub { $_[1] },
+        serialize => sub { $_[0] },
+        parse_value => sub { $_[0] },
         parse_literal => sub {
-            my ($ast) = shift;
+            my $ast = shift;
             return $ast->{kind} eq Kind->STRING || $ast->{kind} eq Kind->INT
                 ? $ast->{value}
                 : undef;
@@ -169,10 +169,9 @@ sub GraphQLInt {
         serialize => \&coerce_int,
         parse_value => \&coerce_int,
         parse_literal => sub {
-            my $ast = $_[1];
+            my $ast = shift;
             if ($ast->{kind} eq Kind->INT) {
-                # TODO: func
-                my $num = parseInt($ast->{value}, 10);
+                my $num = int $ast->{value};
                 if ($num >= MIN_INT && $num <= MAX_INT) {
                     return $num;
                 }
@@ -189,10 +188,10 @@ sub GraphQLString {
               'The `String` scalar type represents textual data, represented as UTF-8 '
             . 'character sequences. The String type is most often used by GraphQL to '
             . 'represent free-form human-readable text.',
-        serialize => sub { $_[1] },
-        parse_value => sub { $_[1] },
+        serialize => sub { $_[0] },
+        parse_value => sub { $_[0] },
         parse_literal => sub {
-            my ($ast) = shift;
+            my $ast = shift;
             return $ast->{kind} eq Kind->STRING ? $ast->{value} : undef;
         },
     );
@@ -285,7 +284,7 @@ sub GraphQLDeprecatedDirective {
 
 # Coercions
 sub coerce_int {
-    my $value = $_[1];
+    my $value = shift;
 
     if ($value eq '') {
         die 'Int cannot represent non 32-bit signed integer value: (empty string)';
@@ -300,7 +299,7 @@ sub coerce_int {
 }
 
 sub coerce_float {
-    my $value = $_[1];
+    my $value = shift;
 
     if ($value eq '') {
         die 'Float cannot represent non numeric value: (empty string)';

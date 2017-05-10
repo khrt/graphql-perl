@@ -29,7 +29,7 @@ sub reason_message {
 # fragments) either correspond to distinct response names or can be merged
 # without ambiguity.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
 
     # A memoization for when two fragments are compared "between" each other for
     # conflicts. Two fragments may be compared many times, so memoizing this can
@@ -43,7 +43,7 @@ sub validate {
 
     return {
         SelectionSet => sub {
-            my $selection_set = shift;
+            my (undef, $selection_set) = @_;
             my $conflicts = find_conflicts_within_selection_set(
                 $context,
                 \%cached_fields_and_fragment_names,
@@ -62,6 +62,8 @@ sub validate {
                     [$fields1, $fields2]
                 );
             }
+
+            return; # undef
         },
     };
 }
@@ -579,7 +581,7 @@ sub _collect_fields_and_fragment_names {
                 $node_and_defs->{ $response_name } = [];
             }
 
-            push $node_and_defs->{ $response_name }, [$parent_type, $selection, $field_def];
+            push @{ $node_and_defs->{ $response_name } }, [$parent_type, $selection, $field_def];
         }
         elsif ($selection->{kind} eq Kind->FRAGMENT_SPREAD) {
             $fragment_names->{ $selection->{name}->{value} } = 1;

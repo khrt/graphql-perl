@@ -27,10 +27,10 @@ sub misplaced_directive_message {
 # A GraphQL document is only valid if all `@directives` are known by the
 # schema and legally positioned.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         Directive => sub {
-            my ($node, $key, $parent, $path, $ancestors) = @_;
+            my (undef, $node, $key, $parent, $path, $ancestors) = @_;
             my $directive_def = find(
                 $context->get_schema->get_directives,
                 sub { $_->{name} eq $node->{name}{value} }
@@ -60,7 +60,8 @@ sub validate {
                     [$node]
                 );
             }
-            # TODO return?
+
+            return; # void
         }
     };
 }

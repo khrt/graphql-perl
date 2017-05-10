@@ -15,7 +15,7 @@ sub undefined_var_message {
 # A GraphQL operation is only valid if all variables encountered, both directly
 # and via fragment spreads, are defined by that operation.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     my %variable_name_defined;
 
     return {
@@ -24,7 +24,7 @@ sub validate {
                 %variable_name_defined = ();
             },
             leave => sub {
-                my $operation = shift;
+                my (undef, $operation) = @_;
                 my $usages = $context->get_recursive_variable_usages($operation);
 
                 for my $u (@$usages) {
@@ -42,13 +42,13 @@ sub validate {
                     }
                 }
 
-                # TODO return?
+                return; # void
             },
         },
         VariableDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             $variable_name_defined{ $node->{variable}{name}{value} } = 1;
-            # TODO return?
+            return; # void
         },
     };
 }

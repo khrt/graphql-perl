@@ -14,13 +14,14 @@ sub duplicate_directive_message {
 # A GraphQL document is only valid if all directives at a given location
 # are uniquely named.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         # Many different AST nodes may contain directives. Rather than listing
         # them all, just listen for entering any node, and check to see if it
         # defines any directives.
         enter => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
+
             if ($node->{directives}) {
                 my %known_directives;
                 for my $directive (@{ $node->{directives} }) {
@@ -36,11 +37,11 @@ sub validate {
                     }
                 }
             }
-            #TODO return
+
+            return; # void
         },
     };
 }
-
 
 1;
 

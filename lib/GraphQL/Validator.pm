@@ -148,7 +148,8 @@ sub visit_using_rules {
         type_info => $type_info,
     );
 
-    my @visitors = map { "GraphQL::Validator::Rules::$_"->validate($context) } @$rules;
+    my @visitors =
+        map { "GraphQL::Validator::Rules::$_"->validate($context) } @$rules;
 
     # Visit the whole document with each instance of all provided rules.
     visit($ast, visit_with_typeinfo($type_info, visit_in_parallel(\@visitors)));

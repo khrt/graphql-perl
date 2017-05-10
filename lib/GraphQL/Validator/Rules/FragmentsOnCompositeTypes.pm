@@ -24,10 +24,10 @@ sub fragment_on_non_composite_error_message {
 # can only be spread into a composite type (object, interface, or union), the
 # type condition must also be a composite type.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         InlineFragment => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
 
             if ($node->{type_condition}) {
                 my $type = type_from_ast($context->get_schema, $node->{type_condition});
@@ -40,10 +40,11 @@ sub validate {
                     )
                 }
             }
-            # TODO return undef?
+
+            return; # void;
         },
         FragmentDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
 
             my $type = type_from_ast($context->get_schema, $node->{type_condition});
             if ($type && !is_composite_type($type)) {
@@ -55,7 +56,8 @@ sub validate {
                     [$node->{type_condition}]
                 );
             }
-            # TODO return undef?
+
+            return; # void;
         },
     };
 }

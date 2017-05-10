@@ -57,9 +57,9 @@ sub parse_value {
 sub parse_literal {
     my ($self, $value_node) = @_;
     if ($value_node->{kind} eq GraphQL::Language::Parser->ENUM) {
-        my $enum_value = $self->_get_name_lookup->{ $value_node->value };
+        my $enum_value = $self->_get_name_lookup->{ $value_node->{value} };
         if ($enum_value) {
-            return $enum_value->value;
+            return $enum_value->{value};
         }
     }
     return;

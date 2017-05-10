@@ -3,6 +3,8 @@ package GraphQL::Validator::Rules::DefaultValuesOfCorrectType;
 use strict;
 use warnings;
 
+use GraphQL::Util qw/is_valid_literal_value/;
+
 sub default_for_non_null_arg_message {
     my ($var_name, $type, $guess_type) = @_;
     return qq`Variable "\$$var_name" of type "${ \$type->to_string }" is required and `
@@ -22,10 +24,11 @@ sub bad_value_for_default_arg_message {
 # A GraphQL document is only valid if all variable default values are of the
 # type expected by their definition.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         VariableDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
+
             my $name = $node->{variable}{name}{value};
             my $default_value = $node->{default_value};
             my $type = $context->get_input_type;

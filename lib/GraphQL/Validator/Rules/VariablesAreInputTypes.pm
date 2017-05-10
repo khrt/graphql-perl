@@ -17,10 +17,10 @@ sub non_input_type_on_var_message {
 # A GraphQL operation is only valid if all the variables it defines are of
 # input types (scalar, enum, or input object).
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
     return {
         VariableDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             my $type = type_from_ast($context->get_schema, $node->{type});
 
             # If the variable type is not an input type, return an error.
@@ -32,7 +32,7 @@ sub validate {
                 );
             }
 
-            # TODO return;
+            return; # void
         }
     };
 }
