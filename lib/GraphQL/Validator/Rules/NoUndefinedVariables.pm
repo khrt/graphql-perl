@@ -14,7 +14,7 @@ sub undefined_var_message {
 #
 # A GraphQL operation is only valid if all variables encountered, both directly
 # and via fragment spreads, are defined by that operation.
-sub no_undefined_variables {
+sub validate {
     my $context = shift;
     my %variable_name_defined;
 

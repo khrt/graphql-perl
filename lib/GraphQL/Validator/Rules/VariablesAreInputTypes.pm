@@ -1,0 +1,42 @@
+package GraphQL::Validator::Rules::VariablesAreInputTypes;
+
+use strict;
+use warnings;
+
+use GraphQL::Language::Printer qw/print_doc/;
+use GraphQL::Util qw/type_from_ast/;
+use GraphQL::Util::Type qw/is_input_type/;
+
+sub non_input_type_on_var_message {
+    my ($variable_name, $type_name) = @_;
+    return qq`Variable "\$$variable_name" cannot be non-input type "$type_name".`;
+}
+
+# Variables are input types
+#
+# A GraphQL operation is only valid if all the variables it defines are of
+# input types (scalar, enum, or input object).
+sub validate {
+    my $context = shift;
+    return {
+        VariableDefinition => sub {
+            my $node = shift;
+            my $type = type_from_ast($context->get_schema, $node->{type});
+
+            # If the variable type is not an input type, return an error.
+            if ($type && !is_input_type($type)) {
+                my $variable_name = $node->{variable}{name}{value};
+                $context->report_error(
+                    non_input_type_on_var_message($variable_name, print_doc($node->{type})),
+                    [$node->{type}]
+                );
+            }
+
+            # TODO return;
+        }
+    };
+}
+
+1;
+
+__END__

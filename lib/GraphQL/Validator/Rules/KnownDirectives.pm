@@ -26,7 +26,7 @@ sub misplaced_directive_message {
 #
 # A GraphQL document is only valid if all `@directives` are known by the
 # schema and legally positioned.
-sub known_directives {
+sub validate {
     my $context = shift;
     return {
         Directive => sub {

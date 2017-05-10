@@ -20,7 +20,7 @@ sub unknown_type_message {
 #
 # A GraphQL document is only valid if referenced types (specifically
 # variable definitions and fragment conditions) are defined by the type schema.
-sub known_type_names {
+sub validate {
     my $context = shift;
     return {
         # TODO: when validating IDL, re-enable these. Experimental version does not

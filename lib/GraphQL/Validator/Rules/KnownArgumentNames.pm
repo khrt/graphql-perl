@@ -37,7 +37,7 @@ sub unknown_directive_arg_message {
 #
 # A GraphQL field is only valid if all supplied arguments are defined by
 # that field.
-sub known_argument_names {
+sub validate {
     my $context = shift;
     return {
         Argument => sub {

@@ -21,7 +21,7 @@ sub bad_value_for_default_arg_message {
 #
 # A GraphQL document is only valid if all variable default values are of the
 # type expected by their definition.
-sub default_values_of_correct_type {
+sub validate {
     my $context = shift;
     return {
         VariableDefinition => sub {

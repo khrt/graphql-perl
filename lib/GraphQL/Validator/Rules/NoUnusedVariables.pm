@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::NoUnsedVariables;
+package GraphQL::Validator::Rules::NoUnusedVariables;
 
 use strict;
 use warnings;
@@ -14,7 +14,7 @@ sub unsed_variable_message {
 #
 # A GraphQL operation is only valid if all variables defined by an operation
 # are used, either directly or within a spread fragment.
-sub no_unsed_variables {
+sub validate {
     my $context = shift;
     my @variables_defs;
 

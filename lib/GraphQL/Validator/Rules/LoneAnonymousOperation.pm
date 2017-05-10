@@ -15,7 +15,7 @@ sub anon_operation_not_alone_message {
 #
 # A GraphQL document is only valid if when it contains an anonymous operation
 # (the query short-hand) that it contains only that one operation definition.
-sub lone_anonymous_operation {
+sub validate {
     my $context = shift;
     my $operation_count = 0;
 

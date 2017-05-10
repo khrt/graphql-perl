@@ -12,7 +12,7 @@ sub unknown_fragment_message {
 #
 # A GraphQL document is only valid if all `...Fragment` fragment spreads refer
 # to fragments defined in the same document.
-sub known_fragment_names {
+sub validate {
     my $context = shift;
     return {
         FragmentSpread => sub {

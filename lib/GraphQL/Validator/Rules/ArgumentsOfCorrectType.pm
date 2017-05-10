@@ -15,16 +15,17 @@ sub bad_value_message {
 #
 # A GraphQL document is only valid if all field argument literal values are
 # of the type expected by their position.
-sub arguments_of_correct_type {
+sub validate {
     my $context = shift;
     return {
         Argument => sub {
             my $node = shift;
             my $arg_def = $context->get_argument;
+
             if ($arg_def) {
                 my $errors =
                     is_valid_literal_value($arg_def->{type}, $node->{value});
-                if ($errors && @$errors) {
+                    if ($errors && @$errors) {
                     $context->report_error(
                         bad_value_message(
                             $node->{name}{value},
@@ -36,11 +37,11 @@ sub arguments_of_correct_type {
                     );
                 }
             }
+
             return; # false
         },
     };
 }
-
 
 1;
 

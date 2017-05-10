@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::NoUnsedFragments;
+package GraphQL::Validator::Rules::NoUnusedFragments;
 
 use strict;
 use warnings;
@@ -12,7 +12,7 @@ sub unsed_frag_message {
 #
 # A GraphQL document is only valid if all fragment definitions are spread
 # within operations, or spread within other fragments spread within operations.
-sub no_unsed_fragments {
+sub validate {
     my $context = shift;
     my (@operation_defs, @fragment_defs);
 

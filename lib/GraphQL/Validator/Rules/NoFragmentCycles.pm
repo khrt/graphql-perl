@@ -9,7 +9,7 @@ sub cycle_error_message {
     return qq`Cannot spread fragment "$frag_name" within itself$via.`;
 }
 
-sub no_fragment_cycles {
+sub validate {
     my $context = shift;
 
     # Tracks already visited fragments to maintain O(N) and to ensure that
@@ -83,7 +83,6 @@ sub no_fragment_cycles {
         },
     };
 }
-
 
 1;
 
