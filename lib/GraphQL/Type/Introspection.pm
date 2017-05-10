@@ -529,6 +529,7 @@ sub SchemaMetaFieldDef {
         resolve => sub {
             my (undef, $source, $args, $context, $xxx) = @_;
             # TODO: rename xxx
+            die;
             $xxx->{schema};
         },
     }
@@ -545,6 +546,7 @@ sub TypeMetaFieldDef {
         resolve => sub {
             my (undef, $source, $args, $context, $xxx) = @_;
             # TODO: rename xxx
+            die;
             $xxx->{schema}->get_type($args->{name});
         },
     }
@@ -558,6 +560,7 @@ sub TypeNameMetaFieldDef {
         resolve => sub {
             my (undef, $source, $args, $context, $xxx) = @_;
             # TODO: rename xxx
+            die;
             $xxx->{parent_type}->name;
         },
     }
