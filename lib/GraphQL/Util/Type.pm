@@ -102,10 +102,9 @@ sub assert_leaf_type {
 
 sub is_composite_type {
     my $type = shift;
-    return
-           $type->isa('GraphQL::Type::Object')
-        || $type->isa('GraphQL::Type::Interface')
-        || $type->isa('GraphQL::Type::Union');
+    return $type && (   $type->isa('GraphQL::Type::Object')
+                     || $type->isa('GraphQL::Type::Interface')
+                     || $type->isa('GraphQL::Type::Union'));
 }
 
 sub assert_composite_type {
@@ -146,12 +145,15 @@ sub assert_named_type {
 
 sub get_named_type {
     my $type = shift;
+    return unless $type;
+
     my $unmodified_type = $type;
     if (   $unmodified_type->isa('GraphQL::Type::List')
         || $unmodified_type->isa('GraphQL::Type::NonNull'))
     {
         $unmodified_type = $unmodified_type->of_type;
     }
+
     return $unmodified_type;
 }
 

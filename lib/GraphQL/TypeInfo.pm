@@ -3,6 +3,11 @@ package GraphQL::TypeInfo;
 use strict;
 use warnings;
 
+use feature 'say';
+use DDP {
+    max_depth => 1,
+};
+
 use GraphQL::Type::Introspection qw/
     SchemaMetaFieldDef
     TypeMetaFieldDef
@@ -11,6 +16,7 @@ use GraphQL::Type::Introspection qw/
 
 use GraphQL::Util qw/
     type_from_ast
+    find
 /;
 
 use GraphQL::Util::Type qw/
@@ -21,8 +27,12 @@ use GraphQL::Util::Type qw/
     is_output_type
 /;
 
+use GraphQL::Language::Parser;
 
-# NOTE: get_field_def_fn
+sub Kind { 'GraphQL::Language::Parser' }
+
+sub schema { shift->{_schema} }
+
 # This experimental optional second parameter is only needed in order
 # to support non-spec-compliant codebases. You should never need to use it.
 # It may disappear in the future.
@@ -47,7 +57,7 @@ sub new {
 sub get_type {
     my $self = shift;
     if (scalar @{ $self->{_type_stack} } > 0) {
-        return $self->{_type_stack}[ scalar($self->{_type_stack}) - 1];
+        return $self->{_type_stack}[scalar(@{ $self->{_type_stack} }) - 1];
     }
     return;
 }
@@ -55,7 +65,7 @@ sub get_type {
 sub get_parent_type {
     my $self = shift;
     if (scalar @{ $self->{_parent_type_stack} } > 0) {
-        return $self->{_parent_type_stack}[ scalar($self->{_parent_type_stack}) - 1];
+        return $self->{_parent_type_stack}[scalar(@{ $self->{_parent_type_stack} }) - 1];
     }
     return;
 }
@@ -63,7 +73,7 @@ sub get_parent_type {
 sub get_input_type {
     my $self = shift;
     if (scalar @{ $self->{_input_type_stack} } > 0) {
-        return $self->{_input_type_stack}[ scalar($self->{_input_type_stack}) - 1];
+        return $self->{_input_type_stack}[ scalar(@{ $self->{_input_type_stack} }) - 1];
     }
     return;
 }
@@ -71,7 +81,7 @@ sub get_input_type {
 sub get_field_def {
     my $self = shift;
     if (scalar @{ $self->{_field_def_stack} } > 0) {
-        return $self->{_field_def_stack}[ scalar($self->{_field_def_stack}) - 1];
+        return $self->{_field_def_stack}[ scalar(@{ $self->{_field_def_stack} }) - 1];
     }
     return;
 }
@@ -94,7 +104,7 @@ sub get_enum_value {
 # Flow doesn't yet handle this case.
 sub enter {
     my ($self, $node) = @_;
-    my $schema = $self->{schema};
+    my $schema = $self->schema;
 
     if ($node->{kind} eq Kind->SELECTION_SET) {
         my $named_type = get_named_type($self->get_type);
@@ -236,7 +246,7 @@ sub leave {
 # statically evaluated environment we do not always have an Object type,
 # and need to handle Interface and Union types.
 sub _get_field_def {
-    my (undef, $schema, $parent_type, $field_node) = @_;
+    my ($schema, $parent_type, $field_node) = @_;
     my $name = $field_node->{name}{value};
 
     if (   $name eq SchemaMetaFieldDef->{name}
@@ -252,7 +262,7 @@ sub _get_field_def {
     }
 
     if (   $name eq TypeNameMetaFieldDef->{name}
-        && $schema->get_query_type == $parent_type)
+        && is_composite_type($parent_type))
     {
         return TypeNameMetaFieldDef;
     }
@@ -260,7 +270,7 @@ sub _get_field_def {
     if (   $parent_type->isa('GraphQL::Type::Object')
         || $parent_type->isa('GraphQL::Type::Interface'))
     {
-        return $parent_type->get_fields->{$name};
+        return $parent_type->get_fields->{ $name };
     }
 
     return;

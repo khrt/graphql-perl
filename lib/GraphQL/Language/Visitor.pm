@@ -8,7 +8,7 @@ use Carp qw/longmess/;
 use Data::Dumper;
 use DDP {
     # indent => 2,
-    # max_depth => 3,
+    # max_depth => 1,
     # index => 0,
     # class => { internals => 0, show_methods => 'none', },
     # caller_info => 0,
@@ -239,6 +239,8 @@ NEXT:
                 $d->Indent(0);
                 $d->Terse(1);
 
+                # warn longmess 'hi';
+
                 die 'Invalid AST Node: ' . $d->Dump . "\n";
             }
 
@@ -386,30 +388,36 @@ sub visit_with_typeinfo {
             my $v = shift;
             my ($node) = @_;
 
+            $type_info->enter($node);
+
             my $fn = get_visit_fn($visitor, $node->{kind}, undef);
             return unless $fn;
 
             my $result = $fn->($visitor, @_);
             if (defined($result)) {
-                $type_info->{leave}->($node);
+                $type_info->leave($node);
 
                 if (is_node($result)) {
-                    $type_info->{enter}->($result);
+                    $type_info->enter($result);
                 }
 
                 return $result;
             }
+
+            return;
         },
         leave => sub {
             my $v = shift;
             my ($node) = @_;
 
             my $fn = get_visit_fn($visitor, $node->{kind}, 1);
+
             my $result;
             if ($fn) {
                 $result = $fn->($visitor, @_);
             }
-            $type_info->{leave}->($node);
+
+            $type_info->leave($node);
             return $result;
         },
     };
@@ -420,12 +428,13 @@ sub visit_with_typeinfo {
 sub get_visit_fn {
     my ($visitor, $kind, $is_leaving) = @_;
 
+    # say '>>> get visit fn';
     # p $visitor;
-    # p $kind;
-    # p $is_leaving;
+    # say "kind: $kind; is_leaving: ${ \($is_leaving ? 1 : 0) }";
+    # say '. . .';
 
     my $kind_visitor = $visitor->{$kind};
-    #warn 'kind_visitor '; p $kind; p $kind_visitor;
+    # warn 'kind_visitor '; p $kind_visitor;
 
     if ($kind_visitor) {
         if (!$is_leaving && ref($kind_visitor) eq 'CODE') {
