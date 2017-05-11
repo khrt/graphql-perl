@@ -3,6 +3,8 @@ package GraphQL::Validator::Rules::DefaultValuesOfCorrectType;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Language::Printer qw/print_doc/;
 use GraphQL::Util qw/is_valid_literal_value/;
 
 sub default_for_non_null_arg_message {
@@ -14,7 +16,7 @@ sub default_for_non_null_arg_message {
 
 sub bad_value_for_default_arg_message {
     my ($var_name, $type, $value, $verbose_errors) = @_;
-    my $message = $verbose_errors ? "\n" . join("\n", $verbose_errors) : '';
+    my $message = $verbose_errors ? "\n" . join("\n", @$verbose_errors) : '';
     return qq`Variable "\$$var_name" of type "${ \$type->to_string }" has invalid `
          . qq`default value $value.$message`;
 }
@@ -35,8 +37,10 @@ sub validate {
 
             if ($type->isa('GraphQL::Type::NonNull') && $default_value) {
                 $context->report_error(
-                    default_for_non_null_arg_message($name, $type, $type->of_type),
-                    [$default_value]
+                    GraphQLError(
+                        default_for_non_null_arg_message($name, $type, $type->of_type),
+                        [$default_value]
+                    )
                 );
             }
 
@@ -44,10 +48,12 @@ sub validate {
                 my $errors = is_valid_literal_value($type, $default_value);
                 if ($errors && @$errors) {
                     $context->report_error(
-                        bad_value_for_default_arg_message(
-                            $name, $type, print_doc($default_value), $errors
-                        ),
-                        [$default_value]
+                        GraphQLError(
+                            bad_value_for_default_arg_message(
+                                $name, $type, print_doc($default_value), $errors
+                            ),
+                            [$default_value]
+                        )
                     );
                 }
             }

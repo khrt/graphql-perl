@@ -26,6 +26,8 @@ our @EXPORT_OK = (qw/
 use GraphQL::Language::Parser;
 use GraphQL::Language::Printer qw/print_doc/;
 
+# use GraphQL::Type qw/:all/;
+
 sub Kind { 'GraphQL::Language::Parser' }
 
 
@@ -70,8 +72,28 @@ sub suggestion_list {
     die
 }
 
+# Given a Schema and an AST node describing a type, return a GraphQLType
+# definition which applies to that type. For example, if provided the parsed
+# AST node for `[User]`, a GraphQLList instance will be returned, containing
+# the type called "User" found in the schema. If a type called "User" is not
+# found in the schema, then undefined will be returned.
 sub type_from_ast {
-    die
+    my ($schema, $type_node) = @_;
+    my $inner_type;
+
+    if ($type_node->{kind} eq Kind->LIST_TYPE) {
+        $inner_type = type_from_ast($schema, $type_node->{type});
+        return $inner_type && GraphQL::Type::GraphQLList($inner_type);
+    }
+
+    if ($type_node->{kind} eq Kind->NON_NULL_TYPE) {
+        $inner_type = type_from_ast($schema, $type_node->{type});
+        return $inner_type && GraphQL::Type::GraphQLNonNull($inner_type);
+    }
+
+    die "Must be a named type.\n" if $type_node->{kind} ne Kind->NAMED_TYPE;
+
+    return $schema->get_type($type_node->{name}{value});
 }
 
 sub key_map {
