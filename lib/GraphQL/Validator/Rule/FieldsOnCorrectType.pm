@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::FieldsOnCorrectType;
+package GraphQL::Validator::Rule::FieldsOnCorrectType;
 
 use strict;
 use warnings;

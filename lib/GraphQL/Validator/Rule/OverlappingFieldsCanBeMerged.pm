@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::OverlappingFieldsCanBeMerged;
+package GraphQL::Validator::Rule::OverlappingFieldsCanBeMerged;
 
 use strict;
 use warnings;

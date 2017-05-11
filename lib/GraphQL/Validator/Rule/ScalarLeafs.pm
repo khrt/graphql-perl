@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::ScalarLeafs;
+package GraphQL::Validator::Rule::ScalarLeafs;
 
 use strict;
 use warnings;

@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::FragmentsOnCompositeTypes;
+package GraphQL::Validator::Rule::FragmentsOnCompositeTypes;
 
 use strict;
 use warnings;

@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::UniqueArgumentNames;
+package GraphQL::Validator::Rule::UniqueArgumentNames;
 
 use strict;
 use warnings;

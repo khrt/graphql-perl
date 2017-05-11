@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::VariablesAreInputTypes;
+package GraphQL::Validator::Rule::VariablesAreInputTypes;
 
 use strict;
 use warnings;

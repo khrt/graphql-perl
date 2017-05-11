@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::UniqueFragmentNames;
+package GraphQL::Validator::Rule::UniqueFragmentNames;
 
 use strict;
 use warnings;

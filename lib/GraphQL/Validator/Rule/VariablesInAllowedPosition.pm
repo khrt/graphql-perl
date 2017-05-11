@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::VariablesInAllowedPosition;
+package GraphQL::Validator::Rule::VariablesInAllowedPosition;
 
 use strict;
 use warnings;

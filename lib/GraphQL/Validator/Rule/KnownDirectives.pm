@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::KnownDirectives;
+package GraphQL::Validator::Rule::KnownDirectives;
 
 use strict;
 use warnings;

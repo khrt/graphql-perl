@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::NoUnusedFragments;
+package GraphQL::Validator::Rule::NoUnusedFragments;
 
 use strict;
 use warnings;

@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::KnownFragmentNames;
+package GraphQL::Validator::Rule::KnownFragmentNames;
 
 use strict;
 use warnings;

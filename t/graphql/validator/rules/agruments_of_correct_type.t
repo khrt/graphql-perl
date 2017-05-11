@@ -25,7 +25,7 @@ sub bad_value {
     }
 
     return {
-        message => GraphQL::Validator::Rules::ArgumentsOfCorrectType::bad_value_message(
+        message => GraphQL::Validator::Rule::ArgumentsOfCorrectType::bad_value_message(
             $arg_name, $type_name, $value, $real_errors
         ),
         locations => [{ line => $line, column => $column }],

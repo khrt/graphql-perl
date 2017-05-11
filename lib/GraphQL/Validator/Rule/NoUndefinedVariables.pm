@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::NoUndefinedVariables;
+package GraphQL::Validator::Rule::NoUndefinedVariables;
 
 use strict;
 use warnings;

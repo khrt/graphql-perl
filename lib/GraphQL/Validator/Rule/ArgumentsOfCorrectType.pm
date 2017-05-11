@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::ArgumentsOfCorrectType;
+package GraphQL::Validator::Rule::ArgumentsOfCorrectType;
 
 use strict;
 use warnings;

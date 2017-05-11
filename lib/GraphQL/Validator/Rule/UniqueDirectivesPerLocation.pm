@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::UniqueDirectivesPerLocation;
+package GraphQL::Validator::Rule::UniqueDirectivesPerLocation;
 
 use strict;
 use warnings;

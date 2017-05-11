@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::KnownTypeNames;
+package GraphQL::Validator::Rule::KnownTypeNames;
 
 use strict;
 use warnings;

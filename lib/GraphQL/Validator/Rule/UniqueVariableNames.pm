@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::UniqueVariableNames;
+package GraphQL::Validator::Rule::UniqueVariableNames;
 
 use strict;
 use warnings;

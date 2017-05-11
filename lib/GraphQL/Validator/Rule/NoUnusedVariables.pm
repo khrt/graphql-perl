@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::NoUnusedVariables;
+package GraphQL::Validator::Rule::NoUnusedVariables;
 
 use strict;
 use warnings;

@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::UniqueInputFieldNames;
+package GraphQL::Validator::Rule::UniqueInputFieldNames;
 
 use strict;
 use warnings;

@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::LoneAnonymousOperation;
+package GraphQL::Validator::Rule::LoneAnonymousOperation;
 
 use strict;
 use warnings;

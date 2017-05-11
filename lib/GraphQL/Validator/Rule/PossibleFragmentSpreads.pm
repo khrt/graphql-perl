@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::PossibleFragmentSpreads;
+package GraphQL::Validator::Rule::PossibleFragmentSpreads;
 
 use strict;
 use warnings;

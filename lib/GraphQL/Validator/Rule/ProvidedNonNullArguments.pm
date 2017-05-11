@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::ProvidedNonNullArguments;
+package GraphQL::Validator::Rule::ProvidedNonNullArguments;
 
 use strict;
 use warnings;

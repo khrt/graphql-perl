@@ -15,31 +15,31 @@ use GraphQL::Language::Visitor qw/
 /;
 use GraphQL::TypeInfo;
 use GraphQL::Validator::Context;
-use GraphQL::Validator::Rules::UniqueOperationNames;
-use GraphQL::Validator::Rules::LoneAnonymousOperation;
-use GraphQL::Validator::Rules::KnownTypeNames;
-use GraphQL::Validator::Rules::FragmentsOnCompositeTypes;
-use GraphQL::Validator::Rules::VariablesAreInputTypes;
-use GraphQL::Validator::Rules::ScalarLeafs;
-use GraphQL::Validator::Rules::FieldsOnCorrectType;
-use GraphQL::Validator::Rules::UniqueFragmentNames;
-use GraphQL::Validator::Rules::KnownFragmentNames;
-use GraphQL::Validator::Rules::NoUnusedFragments;
-use GraphQL::Validator::Rules::PossibleFragmentSpreads;
-use GraphQL::Validator::Rules::NoFragmentCycles;
-use GraphQL::Validator::Rules::UniqueVariableNames;
-use GraphQL::Validator::Rules::NoUndefinedVariables;
-use GraphQL::Validator::Rules::NoUnusedVariables;
-use GraphQL::Validator::Rules::KnownDirectives;
-use GraphQL::Validator::Rules::UniqueDirectivesPerLocation;
-use GraphQL::Validator::Rules::KnownArgumentNames;
-use GraphQL::Validator::Rules::UniqueArgumentNames;
-use GraphQL::Validator::Rules::ArgumentsOfCorrectType;
-# use GraphQL::Validator::Rules::ProvidedNonNullArguments;
-use GraphQL::Validator::Rules::DefaultValuesOfCorrectType;
-use GraphQL::Validator::Rules::VariablesInAllowedPosition;
-use GraphQL::Validator::Rules::OverlappingFieldsCanBeMerged;
-use GraphQL::Validator::Rules::UniqueInputFieldNames;
+use GraphQL::Validator::Rule::UniqueOperationNames;
+use GraphQL::Validator::Rule::LoneAnonymousOperation;
+use GraphQL::Validator::Rule::KnownTypeNames;
+use GraphQL::Validator::Rule::FragmentsOnCompositeTypes;
+use GraphQL::Validator::Rule::VariablesAreInputTypes;
+use GraphQL::Validator::Rule::ScalarLeafs;
+use GraphQL::Validator::Rule::FieldsOnCorrectType;
+use GraphQL::Validator::Rule::UniqueFragmentNames;
+use GraphQL::Validator::Rule::KnownFragmentNames;
+use GraphQL::Validator::Rule::NoUnusedFragments;
+use GraphQL::Validator::Rule::PossibleFragmentSpreads;
+use GraphQL::Validator::Rule::NoFragmentCycles;
+use GraphQL::Validator::Rule::UniqueVariableNames;
+use GraphQL::Validator::Rule::NoUndefinedVariables;
+use GraphQL::Validator::Rule::NoUnusedVariables;
+use GraphQL::Validator::Rule::KnownDirectives;
+use GraphQL::Validator::Rule::UniqueDirectivesPerLocation;
+use GraphQL::Validator::Rule::KnownArgumentNames;
+use GraphQL::Validator::Rule::UniqueArgumentNames;
+use GraphQL::Validator::Rule::ArgumentsOfCorrectType;
+# use GraphQL::Validator::Rule::ProvidedNonNullArguments;
+use GraphQL::Validator::Rule::DefaultValuesOfCorrectType;
+use GraphQL::Validator::Rule::VariablesInAllowedPosition;
+use GraphQL::Validator::Rule::OverlappingFieldsCanBeMerged;
+use GraphQL::Validator::Rule::UniqueInputFieldNames;
 
 use constant {
     SPECIFIED_RULES => [
@@ -149,7 +149,7 @@ sub visit_using_rules {
     );
 
     my @visitors =
-        map { "GraphQL::Validator::Rules::$_"->validate($context) } @$rules;
+        map { "GraphQL::Validator::Rule::$_"->validate($context) } @$rules;
 
     # Visit the whole document with each instance of all provided rules.
     visit($ast, visit_with_typeinfo($type_info, visit_in_parallel(\@visitors)));

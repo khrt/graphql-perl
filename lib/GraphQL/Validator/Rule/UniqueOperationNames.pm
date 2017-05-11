@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::UniqueOperationNames;
+package GraphQL::Validator::Rule::UniqueOperationNames;
 
 use strict;
 use warnings;

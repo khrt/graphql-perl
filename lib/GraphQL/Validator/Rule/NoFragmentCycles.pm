@@ -1,4 +1,4 @@
-package GraphQL::Validator::Rules::NoFragmentCycles;
+package GraphQL::Validator::Rule::NoFragmentCycles;
 
 use strict;
 use warnings;
