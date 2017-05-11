@@ -13,6 +13,10 @@ use DDP {
 };
 use Test::More;
 
+use FindBin qw/$Bin/;
+use lib "$Bin/../..";
+use harness qw/$test_schema/;
+
 use GraphQL::Language::Parser qw/parse/;
 use GraphQL::Language::Visitor qw/
     visit visit_in_parallel visit_with_typeinfo
@@ -1104,14 +1108,6 @@ subtest 'visit_in_parallel' => sub {
 };
 
 subtest 'visit_with_type_info' => sub {
-    my $test_schema;
-    {
-        no strict;
-        no warnings 'once';
-        require "$Bin/../../harness.pl";
-        $test_schema = $Schema;
-    }
-
     subtest 'maintains type info during visit' => sub {
         my @visited;
 
