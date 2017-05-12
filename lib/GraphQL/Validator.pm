@@ -35,7 +35,7 @@ use GraphQL::Validator::Rule::UniqueDirectivesPerLocation;
 use GraphQL::Validator::Rule::KnownArgumentNames;
 use GraphQL::Validator::Rule::UniqueArgumentNames;
 use GraphQL::Validator::Rule::ArgumentsOfCorrectType;
-# use GraphQL::Validator::Rule::ProvidedNonNullArguments;
+use GraphQL::Validator::Rule::ProvidedNonNullArguments;
 use GraphQL::Validator::Rule::DefaultValuesOfCorrectType;
 use GraphQL::Validator::Rule::VariablesInAllowedPosition;
 use GraphQL::Validator::Rule::OverlappingFieldsCanBeMerged;
@@ -113,7 +113,7 @@ use constant {
         'VariablesInAllowedPosition',
 
         # Spec Section: "Field Selection Merging"
-        'OverlappingFieldsCanBeMerged',
+        # 'OverlappingFieldsCanBeMerged',
 
         # Spec Section: "Input Object Field Uniqueness"
         'UniqueInputFieldNames',

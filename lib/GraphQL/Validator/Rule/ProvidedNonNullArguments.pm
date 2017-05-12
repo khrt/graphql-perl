@@ -35,12 +35,12 @@ sub validate {
                     return; # false
                 }
 
-                my $arg_nodes = $node->arguments || [];
+                my $arg_nodes = $node->{arguments} || [];
                 my $arg_node_map = key_map($arg_nodes, sub { $_[0]->{name}{value} });
 
                 for my $arg_def (@{ $field_def->{args} }) {
                     my $arg_node = $arg_node_map->{ $arg_def->{name} };
-                    if (!$arg_node && $arg_def->type->isa('GraphQL::Type::NonNull')) {
+                    if (!$arg_node && $arg_def->{type}->isa('GraphQL::Type::NonNull')) {
                         $context->report_error(
                             GraphQLError(
                                 missing_field_arg_message(

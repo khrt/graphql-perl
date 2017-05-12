@@ -6,6 +6,9 @@ use warnings;
 use List::Util qw/all reduce/;
 
 use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Language::Parser;
+
+sub Kind { 'GraphQL::Language::Parser' }
 
 sub fields_conflict_message {
     my ($response_name, $reason) = @_; return qq`Fields "$response_name" conflict because ${ \reason_message($reason) }. `

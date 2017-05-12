@@ -4,8 +4,7 @@ use strict;
 use warnings;
 
 use feature 'say';
-
-# use DDP {
+use DDP {
 #     indent => 2,
 #     max_depth => 5,
 #     index => 0,
@@ -27,7 +26,7 @@ use feature 'say';
 #         'GraphQL::Type::Union'       => sub { shift->to_string },
 #         },
 #     caller_info => 0,
-# };
+};
 
 use List::Util qw/reduce/;
 
@@ -163,7 +162,7 @@ sub is_possible_type {
             $a->{ $b->name } = $b;
         } {}, @$possible_types;
 p $possible_type_map;
-die 'TODO';
+# die 'TODO';
     }
 
     return !!$possible_type_map->{ $abstract_type->name }{ $possible_type->name };

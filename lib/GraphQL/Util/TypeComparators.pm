@@ -6,6 +6,10 @@ use warnings;
 use List::Util qw/any/;
 use Exporter qw/import/;
 
+use GraphQL::Util::Type qw/
+    is_abstract_type
+/;
+
 our @EXPORT_OK = (qw/
     is_equal_type
     do_types_overlap
