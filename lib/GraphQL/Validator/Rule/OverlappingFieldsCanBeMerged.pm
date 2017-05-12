@@ -5,6 +5,8 @@ use warnings;
 
 use List::Util qw/all reduce/;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub fields_conflict_message {
     my ($response_name, $reason) = @_; return qq`Fields "$response_name" conflict because ${ \reason_message($reason) }. `
          . qq`Use different aliases on the fields to fetch both if this was intentional.`;
@@ -21,7 +23,6 @@ sub reason_message {
 
     return $reason;
 }
-
 
 # Overlapping fields can be merged
 #
@@ -58,8 +59,10 @@ sub validate {
                 my ($response_name, $reason) = @$conflict;
 
                 $context->report_error(
-                    fields_conflict_message($response_name, $reason),
-                    [$fields1, $fields2]
+                    GraphQLError(
+                        fields_conflict_message($response_name, $reason),
+                        [$fields1, $fields2]
+                    )
                 );
             }
 
@@ -623,7 +626,6 @@ sub subfield_conflicts {
 
     return;
 }
-
 
 1;
 

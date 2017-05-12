@@ -5,11 +5,14 @@ use warnings;
 
 use DDP;
 
-use List::Util qw/reduce/;
+use Scalar::Util qw/blessed/;
+use List::Util qw/reduce max min/;
 
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
+    stringify_type
+
     assert_valid_name
     find
 
@@ -30,10 +33,17 @@ use GraphQL::Language::Printer qw/print_doc/;
 
 sub Kind { 'GraphQL::Language::Parser' }
 
+sub stringify_type {
+    my $type = shift;
+    my $str =
+          blessed($type) && $type->can('to_string') ? $type->to_string
+        : ref($type) ? ref($type)
+        :              $type;
+    return \$str;
+}
 
 # Ensures consoles warnigns are only issued once.
 our $has_warned_about_dunder;
-my $NAME_RX = qr/^[_a-zA-z][_a-zA-z0-9]*$/;
 
 sub assert_valid_name {
     my ($name, $is_introspection) = @_;
@@ -49,8 +59,9 @@ sub assert_valid_name {
             . qq`become a hard error.`;
     }
 
-    if ($name !~ m/$NAME_RX/) {
-        die qq`Names must match /$NAME_RX/ but "$name" does not.`;
+    my $name_rx = qr/^[_a-zA-z][_a-zA-z0-9]*$/;
+    if ($name !~ m/$name_rx/) {
+        die qq`Names must match /$name_rx/ but "$name" does not.`;
     }
 }
 
@@ -64,12 +75,99 @@ sub find {
     return;
 }
 
+# Given [ A, B, C ] return '"A", "B", or "C"'.
 sub quoted_or_list {
-    die
+    my $items = shift;
+
+    my $max_length = 5;
+    my @selected = splice @$items, 0, $max_length;
+
+    my $index = 0;
+    return reduce {
+        $a . (
+              (scalar(@selected) > 2 ? ', ' : ' ')
+            . ($index++ == scalar(@selected)-2 ? 'or ' : '')
+            . $b
+        )
+    } map { qq`"$_"` } @selected;
 }
 
+
+# Given an invalid input string and a list of valid options, returns a filtered
+# list of valid options sorted based on their similarity with the input.
 sub suggestion_list {
-    die
+    my ($input, $options) = @_;
+
+    my %options_by_distance;
+    my $o_length = scalar(@$options);
+    my $input_threshold = scalar(split //, $input) / 2;
+
+    for (my $i = 0; $i < $o_length; $i++) {
+        my $distance = _lexical_distance($input, $options->[$i]);
+        my $threshold = max($input_threshold, scalar(split //, $options->[$i]) / 2, 1);
+        if ($distance <= $threshold) {
+            $options_by_distance{ $options->[$i] } = $distance;
+        }
+    }
+
+    my @res =
+        sort { $options_by_distance{a} <=> $options_by_distance{b} }
+        keys %options_by_distance;
+    return \@res;
+}
+
+# Computes the lexical distance between strings A and B.
+#
+# The "distance" between two strings is given by counting the minimum number
+# of edits needed to transform string A into string B. An edit can be an
+# insertion, deletion, or substitution of a single character, or a swap of two
+# adjacent characters.
+#
+# This distance can be useful for detecting typos in input or sorting
+#
+# @param {string} a
+# @param {string} b
+# @return {int} distance in number of edits
+#
+sub _lexical_distance {
+    my ($arg1, $arg2) = @_;
+
+    my @x = split //, $arg1;
+    my @y = split //, $arg2;
+    my $x_length = scalar(@x);
+    my $y_length = scalar(@y);
+
+    my @d;
+
+    for (my $i = 0; $i <= $x_length; $i++) {
+        $d[$i] = [$i];
+    }
+
+    for (my $j = 1; $j <= $y_length; $j++) {
+        $d[0][$j] = $j;
+    }
+
+    for (my $i = 1; $i <= $x_length; $i++) {
+        for (my $j = 1; $j <= $y_length; $j++) {
+            my $cost = $x[$i - 1] eq $y[$j - 1] ? 0 : 1;
+
+            $d[$i][$j] = min(
+                $d[$i - 1][$j] + 1,
+                $d[$i][$j - 1] + 1,
+                $d[$i - 1][$j - 1] + $cost
+            );
+
+            if (   $i > 1
+                && $j > 1
+                && $x[$i - 1] eq $y[$j - 2]
+                && $x[$i - 2] eq $y[$j - 1])
+            {
+                $d[$i][$j] = min($d[$i][$j], $d[$i - 2][$j - 2] + $cost);
+            }
+        }
+    }
+
+    return $d[$x_length][$y_length];
 }
 
 # Given a Schema and an AST node describing a type, return a GraphQLType

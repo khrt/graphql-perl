@@ -5,26 +5,31 @@ use warnings;
 
 use feature 'say';
 
-use DDP {
-    indent => 2,
-    # max_depth => 3,
-    index => 0,
-    class => {
-        internals => 0,
-        show_methods => 'none',
-    },
-    filters => {
-        'GraphQL::Type::Enum'        => sub { shift->to_string },
-        'GraphQL::Type::InputObject' => sub { shift->to_string },
-        'GraphQL::Type::Interface'   => sub { shift->to_string },
-        'GraphQL::Type::List'        => sub { shift->to_string },
-        'GraphQL::Type::NonNull'     => sub { shift->to_string },
-        'GraphQL::Type::Object'      => sub { shift->to_string },
-        'GraphQL::Type::Scalar'      => sub { shift->to_string },
-        'GraphQL::Type::Union'       => sub { shift->to_string },
-        },
-    caller_info => 0,
-};
+# use DDP {
+#     indent => 2,
+#     max_depth => 5,
+#     index => 0,
+#     class => {
+#         internals => 0,
+#         show_methods => 'none',
+#     },
+#     filters => {
+#         'GraphQL::Language::Token' => sub { shift->inspect },
+#         'GraphQL::Language::Source' => sub { shift->name },
+
+#         'GraphQL::Type::Enum'        => sub { shift->to_string },
+#         'GraphQL::Type::InputObject' => sub { shift->to_string },
+#         'GraphQL::Type::Interface'   => sub { shift->to_string },
+#         'GraphQL::Type::List'        => sub { shift->to_string },
+#         'GraphQL::Type::NonNull'     => sub { shift->to_string },
+#         'GraphQL::Type::Object'      => sub { shift->to_string },
+#         'GraphQL::Type::Scalar'      => sub { shift->to_string },
+#         'GraphQL::Type::Union'       => sub { shift->to_string },
+#         },
+#     caller_info => 0,
+# };
+
+use List::Util qw/reduce/;
 
 use GraphQL::Type::Introspection qw/__Schema/;
 use GraphQL::Util qw/find/;
@@ -80,10 +85,9 @@ sub new {
     }
 
     for (@initial_types) {
-        $self->{_type_map} = {
-            %{ $self->{_type_map} || {} },
-            %{ type_map_reducer({}, $_) },
-        };
+        $self->{_type_map} = reduce {
+            type_map_reducer($a, $b)
+        } {}, @initial_types;
     }
 
     # Keep track of all implementations by interface name.
@@ -155,11 +159,11 @@ sub is_possible_type {
             . "in schema. Check that schema.types is defined and is an array of "
             . "all possible types in the schema.\n" if ref($possible_types) ne 'ARRAY';
 
+        $possible_type_map->{ $abstract_type->name } = reduce {
+            $a->{ $b->name } = $b;
+        } {}, @$possible_types;
+p $possible_type_map;
 die 'TODO';
-        $possible_type_map->{ $abstract_type->name } = \grep {
-            1
-            # TODO: (map, type) => ((map[type.name] = true), map),
-        } @$possible_types;
     }
 
     return !!$possible_type_map->{ $abstract_type->name }{ $possible_type->name };

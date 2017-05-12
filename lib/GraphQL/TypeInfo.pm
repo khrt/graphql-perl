@@ -194,7 +194,7 @@ sub enter {
         my $enum_type = get_named_type($self->get_input_type);
         my $enum_value;
 
-        if ($enum_type->isa('GraphQL::Type::Enum')) {
+        if ($enum_type && $enum_type->isa('GraphQL::Type::Enum')) {
             $enum_value = $enum_type->get_value($node->{value});
         }
 

@@ -3,13 +3,18 @@ package GraphQL::Validator::Rule::KnownTypeNames;
 use strict;
 use warnings;
 
-use GraphQL::Util qw/quoted_or_list suggestion_list/;
+use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Util qw/
+    stringify_type
+    quoted_or_list
+    suggestion_list
+/;
 
 sub unknown_type_message {
     my ($type, $suggested_types) = @_;
-    my $message = qq`Unknown type "${ \$type->to_string }".`;
+    my $message = qq`Unknown type "${ stringify_type($type) }".`;
 
-    if ($suggested_types) {
+    if ($suggested_types && @$suggested_types) {
         $message .= ' Did you mean ' . quoted_or_list($suggested_types) . '?';
     }
 
@@ -39,15 +44,17 @@ sub validate {
 
             unless ($type) {
                 $context->report_error(
-                    unknown_type_message(
-                        $type_name,
-                        suggestion_list($type_name, keys %{ $schema->get_type_map }),
-                    ),
-                    [$node]
+                    GraphQLError(
+                        unknown_type_message(
+                            $type_name,
+                            suggestion_list($type_name, [keys %{ $schema->get_type_map }]),
+                        ),
+                        [$node]
+                    )
                 );
             }
 
-            # return?
+            return;
         },
     };
 }

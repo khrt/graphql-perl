@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::UniqueInputFieldNames;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub duplicate_input_field_message {
     my $field_name = shift;
     return qq`There can be only one input field named "$field_name".`;
@@ -36,8 +38,10 @@ sub validate {
 
             if ($known_names{ $field_name }) {
                 $context->report_error(
-                    duplicate_input_field_message($field_name),
-                    [$known_names{ $field_name }, $node->{name}]
+                    GraphQLError(
+                        duplicate_input_field_message($field_name),
+                        [$known_names{ $field_name }, $node->{name}]
+                    )
                 );
             }
             else {

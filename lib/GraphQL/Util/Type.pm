@@ -55,6 +55,7 @@ sub assert_type {
 
 sub is_input_type {
     my $type = shift;
+    return unless defined $type;
     return
            $type->isa('GraphQL::Type::Scalar')
         || $type->isa('GraphQL::Type::Enum')
@@ -71,6 +72,7 @@ sub assert_input_type {
 
 sub is_output_type {
     my $type = shift;
+    return unless defined $type;
     return
            $type->isa('GraphQL::Type::Scalar')
         || $type->isa('GraphQL::Type::Object')

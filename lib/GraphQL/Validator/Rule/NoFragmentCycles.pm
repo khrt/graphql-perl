@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::NoFragmentCycles;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub cycle_error_message {
     my ($frag_name, $spread_names) = @_;
     my $via = scalar @$spread_names ? ' via ' . join(', ', @$spread_names) : '';
@@ -22,7 +24,6 @@ sub validate {
     # Position in the spread path
     my %spread_path_index_by_name;
 
-
     # This does a straight-forward DFS to find cycles.
     # It does not terminate when a cycle was found but continues to explore
     # the graph to find all possible cycles.
@@ -33,9 +34,8 @@ sub validate {
 
         $visited_frags{ $frag_name } = 1;
 
-        my $spread_nodes =
-            $context->get_fragment_spreads($frag->{selection_set});
-        unless ($spread_nodes) {
+        my $spread_nodes = $context->get_fragment_spreads($frag->{selection_set});
+        unless (@$spread_nodes) {
             return;
         }
 
@@ -58,13 +58,15 @@ sub validate {
                 pop @spread_path;
             }
             else {
-                my $cycle_path = splice @spread_path, $cycle_index;
+                my @cycle_path = splice @spread_path, $cycle_index;
                 $context->report_error(
-                    cycle_error_message(
-                        $spread_name,
-                        [map { $_->{name}{value} } @$spread_node]
-                    ),
-                    [@$cycle_path, @$spread_node]
+                    GraphQLError(
+                        cycle_error_message(
+                            $spread_name,
+                            [map { $_->{name}{value} } @cycle_path]
+                        ),
+                        [@cycle_path, $spread_node]
+                    )
                 );
             }
         }

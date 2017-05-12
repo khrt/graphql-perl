@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::UniqueVariableNames;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub duplicate_variable_message {
     my $variable_name = shift;
     return qq`There can be only one variable named "$variable_name".`;
@@ -26,8 +28,10 @@ sub validate {
 
             if ($known_variable_names{ $variable_name }) {
                 $context->report_error(
-                    duplicate_variable_message($variable_name),
-                    [$known_variable_names{ $variable_name }, $node->{variable}{name}]
+                    GraphQLError(
+                        duplicate_variable_message($variable_name),
+                        [$known_variable_names{ $variable_name }, $node->{variable}{name}]
+                    )
                 );
             }
             else {

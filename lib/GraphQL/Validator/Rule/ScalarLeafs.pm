@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::ScalarLeafs;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Util::Type qw/
     get_named_type
     is_leaf_type
@@ -36,15 +37,19 @@ sub validate {
                 if (is_leaf_type(get_named_type($type))) {
                     if ($node->{selection_set}) {
                         $context->report_error(
-                            no_subselection_allowed_message($node->{name}{value}, $type),
-                            [$node->{selection_set}]
+                            GraphQLError(
+                                no_subselection_allowed_message($node->{name}{value}, $type),
+                                [$node->{selection_set}]
+                            )
                         );
                     }
                 }
                 elsif (!$node->{selection_set}) {
                     $context->report_error(
-                        required_subselection_message($node->{name}{value}, $type),
-                        [$node]
+                        GraphQLError(
+                            required_subselection_message($node->{name}{value}, $type),
+                            [$node]
+                        )
                     );
                 }
             }

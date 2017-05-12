@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::KnownFragmentNames;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub unknown_fragment_message {
     my $frag_name = shift;
     return qq`Unknown fragment "$frag_name".`;
@@ -23,8 +25,10 @@ sub validate {
 
             unless ($frag) {
                 $context->report_error(
-                    unknown_fragment_message($frag_name),
-                    [$node->{name}]
+                    GraphQLError(
+                        unknown_fragment_message($frag_name),
+                        [$node->{name}]
+                    )
                 );
             }
 

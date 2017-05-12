@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::VariablesInAllowedPosition;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Util qw/type_from_ast/;
 use GraphQL::Util::Type qw/is_type_subtype_of/;
 
@@ -45,8 +46,10 @@ sub validate {
                             !is_type_sub_type_of($schema, effective_type($var_type, $var_def), $type))
                         {
                             $context->report_error(
-                                bad_var_pos_message($var_name, $var_type, $type),
-                                [$var_def, $node]
+                                GraphQLError(
+                                    bad_var_pos_message($var_name, $var_type, $type),
+                                    [$var_def, $node]
+                                )
                             );
                         }
                     }

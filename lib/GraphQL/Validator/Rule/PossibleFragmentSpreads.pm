@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::PossibleFragmentSpreads;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Util qw/type_from_ast/;
 use GraphQL::Util::TypeComparators qw/do_types_overlap/;
 
@@ -37,8 +38,10 @@ sub validate {
                 && !do_types_overlap($context->get_schema, $frag_type, $parent_type))
             {
                 $context->report_error(
-                    type_incompatible_anon_spread_message($parent_type, $frag_type),
-                    [$node]
+                    GraphQLError(
+                        type_incompatible_anon_spread_message($parent_type, $frag_type),
+                        [$node]
+                    )
                 );
             }
 
@@ -56,8 +59,10 @@ sub validate {
                 && !do_types_overlap($context->get_schema, $frag_type, $parent_type))
             {
                 $context->report_error(
-                    type_incompatible_spread_message($frag_name, $parent_type, $frag_type),
-                    [$node]
+                    GraphQLError(
+                        type_incompatible_spread_message($frag_name, $parent_type, $frag_type),
+                        [$node]
+                    )
                 );
             }
 

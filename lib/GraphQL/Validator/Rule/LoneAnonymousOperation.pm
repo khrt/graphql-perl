@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::LoneAnonymousOperation;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Parser;
 
 sub Kind { 'GraphQL::Language::Parser' }
@@ -33,8 +34,10 @@ sub validate {
 
             if (!$node->{name} && $operation_count > 1) {
                 $context->report_error(
-                    anon_operation_not_alone_message,
-                    [$node]
+                    GraphQLError(
+                        anon_operation_not_alone_message,
+                        [$node]
+                    )
                 );
             }
 

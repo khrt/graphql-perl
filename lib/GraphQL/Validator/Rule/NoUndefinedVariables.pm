@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::NoUndefinedVariables;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub undefined_var_message {
     my ($var_name, $op_name) = @_;
     return $op_name
@@ -22,6 +24,7 @@ sub validate {
         OperationDefinition => {
             enter => sub {
                 %variable_name_defined = ();
+                return;
             },
             leave => sub {
                 my (undef, $operation) = @_;
@@ -33,11 +36,13 @@ sub validate {
 
                     if (!$variable_name_defined{ $var_name }) {
                         $context->report_error(
-                            undefined_var_message(
-                                $var_name,
-                                $operation->{name} && $operation->{name}{value}
-                            ),
-                            [$node, $operation]
+                            GraphQLError(
+                                undefined_var_message(
+                                    $var_name,
+                                    $operation->{name} && $operation->{name}{value}
+                                ),
+                                [$node, $operation]
+                            )
                         );
                     }
                 }

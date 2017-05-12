@@ -3,7 +3,37 @@ package GraphQL::Validator::Context;
 use strict;
 use warnings;
 
+use Carp qw/longmess/;
+use DDP {
+    indent => 2,
+    max_depth => 5,
+    index => 0,
+    class => {
+        internals => 0,
+        show_methods => 'none',
+    },
+    filters => {
+        'GraphQL::Language::Token' => sub { shift->desc },
+        'GraphQL::Language::Source' => sub { shift->name },
+
+        'GraphQL::Type::Enum'        => sub { shift->to_string },
+        'GraphQL::Type::InputObject' => sub { shift->to_string },
+        'GraphQL::Type::Interface'   => sub { shift->to_string },
+        'GraphQL::Type::List'        => sub { shift->to_string },
+        'GraphQL::Type::NonNull'     => sub { shift->to_string },
+        'GraphQL::Type::Object'      => sub { shift->to_string },
+        'GraphQL::Type::Scalar'      => sub { shift->to_string },
+        'GraphQL::Type::Union'       => sub { shift->to_string },
+    },
+    caller_info => 0,
+};
+use List::Util qw/reduce/;
+
 use GraphQL::Language::Parser;
+use GraphQL::Language::Visitor qw/
+    visit
+    visit_with_typeinfo
+/;
 
 sub Kind { 'GraphQL::Language::Parser' }
 
@@ -16,11 +46,11 @@ sub new {
         type_info => $args{type_info},
 
         errors => [],
-        fragments => [],
-        fragment_spreads => [],
+        # fragments => {},
+        fragment_spreads => {},
         recursively_referenced_fragments => {},
-        variable_usages => [],
-        recursive_variable_usages => [],
+        variable_usages => {},
+        recursive_variable_usages => {},
     }, $class;
 
     return $self;
@@ -40,9 +70,12 @@ sub get_fragment {
 
     my $fragments = $self->{fragments};
     if (!$fragments) {
-        $fragments = $self->{fragments} =
-            # TODO
-            grep { die  } @{ $self->get_document->{definitions} };
+        $self->{fragments} = $fragments = reduce {
+            if ($b->{kind} eq Kind->FRAGMENT_DEFINITION) {
+                $a->{ $b->{name}{value} } = $b;
+            }
+            $a;
+        } {}, @{ $self->get_document->{definitions} };
     }
 
     return $fragments->{ $name };
@@ -51,11 +84,14 @@ sub get_fragment {
 sub get_fragment_spreads {
     my ($self, $node) = @_;
 
+    # print 'node '; p $node;
+    # warn longmess 'spreads';
+
     my $spreads = $self->{fragment_spreads}{$node};
     if (!$spreads) {
         $spreads = [];
 
-        my @sets_to_visit = [$node];
+        my @sets_to_visit = ($node);
         while (@sets_to_visit) {
             my $set = pop @sets_to_visit;
 
@@ -83,7 +119,7 @@ sub get_recursively_referenced_fragments {
         $fragments = [];
 
         my %collected_names;
-        my @nodes_to_visit = [$operation->{selection_set}];
+        my @nodes_to_visit = ($operation->{selection_set});
         while (@nodes_to_visit) {
             my $node = pop @nodes_to_visit;
             my $spreads = $self->get_fragment_spreads($node);
@@ -120,8 +156,9 @@ sub get_variable_usages {
         visit($node, visit_with_typeinfo($type_info, {
             VariableDefinition => sub { 0 },
             Variable => sub {
-                my ($variable) = @_;
+                my (undef, $variable) = @_;
                 push @new_usages, { node => $variable, type => $type_info->get_input_type };
+                return;
             }
         }));
 
@@ -141,7 +178,7 @@ sub get_recursive_variable_usages {
 
         my $fragments = $self->get_recursively_referenced_fragments($operation);
         for my $fragment (@$fragments) {
-            push @$usages, $self->get_variable_usages($fragment);
+            push @$usages, @{ $self->get_variable_usages($fragment) };
         }
 
         $self->{recursive_variable_usages}{ $operation } = $usages;

@@ -3,22 +3,28 @@ package GraphQL::Validator::Rule::FieldsOnCorrectType;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Util qw/
+    stringify_type
     suggestion_list
     quoted_or_list
+/;
+use GraphQL::Util::Type qw/
+    is_abstract_type
 /;
 
 sub undefined_field_message {
     my ($field_name, $type, $suggested_type_names, $suggested_field_names) = @_;
-    my $message = qq`Cannot query field "$field_name" on type "${ \$type->to_string }".`;
 
-    if ($suggested_type_names) {
+    my $message = qq`Cannot query field "$field_name" on type "${ stringify_type($type) }".`;
+
+    if ($suggested_type_names && @$suggested_type_names) {
         my $suggestions = quoted_or_list($suggested_type_names);
-        $message .= "Did you mean to use an inline fragment on $suggestions?";
+        $message .= " Did you mean to use an inline fragment on $suggestions?";
     }
-    elsif ($suggested_field_names) {
+    elsif ($suggested_field_names && @$suggested_field_names) {
         my $suggestions = quoted_or_list($suggested_field_names);
-        $message .= "Did you mean $suggestions?";
+        $message .= " Did you mean $suggestions?";
     }
 
     return $message;
@@ -55,17 +61,20 @@ sub validate {
 
                     # Report an error, including helpful suggestions.
                     $context->report_error(
-                        undefined_field_message(
-                            $field_name,
-                            $type->name,
-                            $suggested_type_names,
-                            $suggested_field_names
-                        ),
-                        [$node]
+                        GraphQLError(
+                            undefined_field_message(
+                                $field_name,
+                                $type,
+                                $suggested_type_names,
+                                $suggested_field_names
+                            ),
+                            [$node]
+                        )
                     );
                 }
             }
-            #TODO XXX? return??
+
+            return;
         }
     }
 }
@@ -83,7 +92,7 @@ sub get_suggested_type_names {
 
         for my $possible_type (@{ $schema->get_possible_types($type) }) {
             unless ($possible_type->get_fields->{ $field_name }) {
-                return;
+                last;
             }
 
             # This object type defines this field.
@@ -91,7 +100,7 @@ sub get_suggested_type_names {
 
             for my $possible_interface (@{ $possible_type->get_interfaces }) {
                 unless ($possible_interface->get_fields->{ $field_name }) {
-                    return;
+                    last;
                 }
 
                 # This interface type defines this field.
@@ -100,7 +109,6 @@ sub get_suggested_type_names {
         }
 
         # Suggest interface types based on how common they are.
-        # TODO
         my @suggested_interface_types =
             sort { $interface_usage_count{$b} <=> $interface_usage_count{$a} }
             keys %interface_usage_count;
@@ -110,7 +118,7 @@ sub get_suggested_type_names {
     }
 
     # Otherwise, must be an Object type, which does not have possible fields.
-    return;
+    return [];
 }
 
 # For the field name provided, determine if there are any similar field names
@@ -121,8 +129,8 @@ sub get_suggested_field_names {
     if ($type->isa('GraphQL::Type::Object')
         || $type->isa('GraphQL::Type::Interface'))
     {
-        my $possible_field_names = keys %{ $type->get_fields };
-        return suggestion_list($field_name, $possible_field_names);
+        my @possible_field_names = keys %{ $type->get_fields };
+        return suggestion_list($field_name, \@possible_field_names);
     }
 
     # Otherwise, must be a Union type, which does not define fields.

@@ -104,7 +104,7 @@ use constant {
         'ArgumentsOfCorrectType',
 
         # Spec Section: "Argument Optionality"
-        #TODO 'ProvidedNonNullArguments',
+        'ProvidedNonNullArguments',
 
         # Spec Section: "Variable Default Values Are Correctly Typed"
         'DefaultValuesOfCorrectType',
@@ -156,7 +156,6 @@ sub visit_using_rules {
 
     return $context->get_errors;
 }
-
 
 1;
 

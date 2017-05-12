@@ -736,7 +736,7 @@ sub parse_type_system_definition {
         elsif ($value eq 'interface') { parse_interface_type_definition($lexer) }
         elsif ($value eq 'union')     { parse_union_type_definition($lexer) }
         elsif ($value eq 'enum')      { parse_enum_type_definition($lexer) }
-        elsif ($value eq 'input')     { parse_input_object_definition($lexer) }
+        elsif ($value eq 'input')     { parse_input_object_type_definition($lexer) }
         elsif ($value eq 'extend')    { parse_type_extension_definition($lexer) }
         elsif ($value eq 'directive') { parse_directive_definition($lexer) }
     };
@@ -752,7 +752,7 @@ sub parse_type_system_definition {
 #
 sub parse_schema_definition {
     my $lexer = shift;
-    my $start = $lexer->start;
+    my $start = $lexer->token;
 
     expect_keyword($lexer, 'schema');
 
@@ -791,7 +791,7 @@ sub parse_operation_type_definition {
 #
 sub parse_scalar_type_definition {
     my $lexer = shift;
-    my $start = shift;
+    my $start = $lexer->token;
 
     expect_keyword($lexer, 'scalar');
 
@@ -833,6 +833,23 @@ sub parse_object_type_definition {
         fields => \$fields,
         loc($lexer, $start),
     };
+}
+
+#
+# ImplementsInterfaces : implements NamedType+
+#
+sub parse_implements_interfaces {
+    my $lexer = shift;
+    my @types;
+
+    if ($lexer->token->value eq 'implements') {
+        $lexer->advance;
+        do {
+            push @types, parse_named_type($lexer);
+        } while ($lexer->token->kind eq TokenKind->NAME);
+    }
+
+    return \@types;
 }
 
 #

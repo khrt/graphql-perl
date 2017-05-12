@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::ProvidedNonNullArguments;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Util qw/key_map/;
 
 sub missing_field_arg_message {
@@ -41,12 +42,14 @@ sub validate {
                     my $arg_node = $arg_node_map->{ $arg_def->{name} };
                     if (!$arg_node && $arg_def->type->isa('GraphQL::Type::NonNull')) {
                         $context->report_error(
-                            missing_field_arg_message(
-                                $node->{name}{value},
-                                $arg_def->{name},
-                                $arg_def->{type}
-                            ),
-                            [$node]
+                            GraphQLError(
+                                missing_field_arg_message(
+                                    $node->{name}{value},
+                                    $arg_def->{name},
+                                    $arg_def->{type}
+                                ),
+                                [$node]
+                            )
                         );
                     }
                 };
@@ -71,12 +74,14 @@ sub validate {
                     my $arg_node = $arg_node_map->{ $arg_def->{name} };
                     if (!$arg_node && $arg_def->type->isa('GraphQL::Type::NonNull')) {
                         $context->report_error(
-                            missing_directive_arg_message(
-                                $node->{name}{value},
-                                $arg_def->{name},
-                                $arg_def->{type}
-                            ),
-                            [$node]
+                            GraphQLError(
+                                missing_directive_arg_message(
+                                    $node->{name}{value},
+                                    $arg_def->{name},
+                                    $arg_def->{type}
+                                ),
+                                [$node]
+                            )
                         );
                     }
                 };

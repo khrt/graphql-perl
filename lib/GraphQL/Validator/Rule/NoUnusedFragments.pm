@@ -3,7 +3,9 @@ package GraphQL::Validator::Rule::NoUnusedFragments;
 use strict;
 use warnings;
 
-sub unsed_frag_message {
+use GraphQL::Error qw/GraphQLError/;
+
+sub unused_frag_message {
     my $frag_name = shift;
     return qq`Fragment "$frag_name" is never used.`;
 }
@@ -41,8 +43,10 @@ sub validate {
                     my $frag_name = $frag_def->{name}{value};
                     unless ($fragment_name_used{ $frag_name }) {
                         $context->report_error(
-                            unsed_frag_message($frag_name),
-                            [$frag_def]
+                            GraphQLError(
+                                unused_frag_message($frag_name),
+                                [$frag_def]
+                            )
                         );
                     }
                 }

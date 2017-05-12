@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::VariablesAreInputTypes;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Printer qw/print_doc/;
 use GraphQL::Util qw/type_from_ast/;
 use GraphQL::Util::Type qw/is_input_type/;
@@ -27,8 +28,10 @@ sub validate {
             if ($type && !is_input_type($type)) {
                 my $variable_name = $node->{variable}{name}{value};
                 $context->report_error(
-                    non_input_type_on_var_message($variable_name, print_doc($node->{type})),
-                    [$node->{type}]
+                    GraphQLError(
+                        non_input_type_on_var_message($variable_name, print_doc($node->{type})),
+                        [$node->{type}]
+                    )
                 );
             }
 

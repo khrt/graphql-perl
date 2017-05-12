@@ -11,26 +11,10 @@ use harness qw/
     expect_fails_rule
 /;
 
-#
-sub default_for_non_null_arg_message {
-    my ($var_name, $type, $guess_type) = @_;
-    return qq`Variable "\$$var_name" of type "$type" is required and `
-         . qq`will not use the default value. `
-         . qq`Perhaps you meant to use type "$guess_type".`;
-}
-
-sub bad_value_for_default_arg_message {
-    my ($var_name, $type, $value, $verbose_errors) = @_;
-    my $message = $verbose_errors ? "\n" . join("\n", @$verbose_errors) : '';
-    return qq`Variable "\$$var_name" of type "$type" has invalid `
-         . qq`default value $value.$message`;
-}
-#
-
 sub default_for_non_null_arg {
     my ($var_name, $type_name, $guess_type_name, $line, $column) = @_;
     return {
-        message => default_for_non_null_arg_message($var_name, $type_name, $guess_type_name),
+        message => GraphQL::Validator::Rule::DefaultValuesOfCorrectType::default_for_non_null_arg_message($var_name, $type_name, $guess_type_name),
         locations => [{ line => $line, column => $column }],
         path => undef,
     };
@@ -48,7 +32,7 @@ sub bad_value {
     }
 
     return {
-        message => bad_value_for_default_arg_message($var_name, $type_name, $val, $real_errors),
+        message => GraphQL::Validator::Rule::DefaultValuesOfCorrectType::bad_value_for_default_arg_message($var_name, $type_name, $val, $real_errors),
         locations => [ { line => $line, column => $column } ],
         path => undef,
     };

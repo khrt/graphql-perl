@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::UniqueDirectivesPerLocation;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub duplicate_directive_message {
     my $directive_name = shift;
     return qq`The directive "$directive_name" can only be used once at `
@@ -28,8 +30,10 @@ sub validate {
                     my $directive_name = $directive->{name}{value};
                     if ($known_directives{ $directive_name }) {
                         $context->report_error(
-                            duplicate_directive_message($directive_name),
-                            [$known_directives{ $directive_name }, $directive]
+                            GraphQLError(
+                                duplicate_directive_message($directive_name),
+                                [$known_directives{ $directive_name }, $directive]
+                            )
                         );
                     }
                     else {

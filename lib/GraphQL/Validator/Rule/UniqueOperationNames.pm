@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::UniqueOperationNames;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub duplicate_operation_name_message {
     my $operation_name = shift;
     return qq`There can be only one operation named "${operation_name}".`;
@@ -23,8 +25,10 @@ sub validate {
             if ($operation_name) {
                 if ($known_operation_names{ $operation_name->{value} }) {
                     $context->report_error(
-                        duplicate_operation_name_message($operation_name->{value}),
-                        [$known_operation_names{ $operation_name->{value} }, $operation_name]
+                        GraphQLError(
+                            duplicate_operation_name_message($operation_name->{value}),
+                            [$known_operation_names{ $operation_name->{value} }, $operation_name]
+                        )
                     );
                 }
                 else {

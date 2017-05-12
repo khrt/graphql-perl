@@ -238,8 +238,13 @@ NEXT:
                 my $d = Data::Dumper->new([$node]);
                 $d->Indent(0);
                 $d->Terse(1);
+                $d->Maxdepth(3);
 
-                # warn longmess 'hi';
+                if (ref($node) eq 'REF') {
+                    warn '$node IS A REF!';
+                }
+                # p($node, max_depth => 5);
+                # warn longmess 'Invalid AST Node';
 
                 die 'Invalid AST Node: ' . $d->Dump . "\n";
             }
@@ -434,14 +439,14 @@ sub get_visit_fn {
     # say '. . .';
 
     my $kind_visitor = $visitor->{$kind};
-    # warn 'kind_visitor '; p $kind_visitor;
+    # print 'kind_visitor '; p $kind_visitor;
 
     if ($kind_visitor) {
         if (!$is_leaving && ref($kind_visitor) eq 'CODE') {
             # { Kind() {} }
             return $kind_visitor;
         }
-        return if ref($kind_visitor) eq 'CODE';
+        return if ref($kind_visitor) eq 'CODE'; # TODO should not be here
 
         my $kind_specific_visitor =
             $is_leaving ? $kind_visitor->{leave} : $kind_visitor->{enter};

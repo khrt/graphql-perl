@@ -3,6 +3,9 @@ package GraphQL::Validator::Rule::KnownDirectives;
 use strict;
 use warnings;
 
+use List::Util qw/none/;
+
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Type::Directive;
 use GraphQL::Language::Parser;
 use GraphQL::Util qw/find/;
@@ -33,31 +36,40 @@ sub validate {
             my (undef, $node, $key, $parent, $path, $ancestors) = @_;
             my $directive_def = find(
                 $context->get_schema->get_directives,
-                sub { $_->{name} eq $node->{name}{value} }
+                sub { $_[0]->{name} eq $node->{name}{value} }
             );
 
             if (!$directive_def) {
                 $context->report_error(
-                    unknown_directive_message($node->{name}{value}),
-                    [$node]
+                    GraphQLError(
+                        unknown_directive_message($node->{name}{value}),
+                        [$node]
+                    )
                 );
                 return;
             }
 
             # TODO
             my $candidate_location = get_directive_location_for_ast_path($ancestors);
-            p $candidate_location;
+
+            # print 'cl '; p $candidate_location;
+            # print 'defdef loc '; p $directive_def->{locations};
+            # print 'indefox '; p none { $_ eq $candidate_location } @{ $directive_def->{locations} };
+
             if (!$candidate_location) {
                 $context->report_error(
-                    misplaced_directive_message($node->{name}{value}, $node->{type}),
-                    [$node]
+                    GraphQLError(
+                        misplaced_directive_message($node->{name}{value}, $node->{type}),
+                        [$node]
+                    )
                 );
             }
-            # TODO
-            elsif (grep { die $candidate_location } @{ $directive_def->{locations} }) {
+            elsif (none { $_ eq $candidate_location } @{ $directive_def->{locations} }) {
                 $context->report_error(
-                    misplaced_directive_message($node->{name}{value}, $candidate_location),
-                    [$node]
+                    GraphQLError(
+                        misplaced_directive_message($node->{name}{value}, $candidate_location),
+                        [$node]
+                    )
                 );
             }
 

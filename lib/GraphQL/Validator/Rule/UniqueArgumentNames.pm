@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::UniqueArgumentNames;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub duplicate_arg_message {
     my $arg_name = shift;
     return qq`There can be only one argument named "$arg_name".`;
@@ -30,8 +32,10 @@ sub validate {
 
             if ($known_arg_names{ $arg_name }) {
                 $context->report_error(
-                    duplicate_arg_message($arg_name),
-                    [$known_arg_names{ $arg_name }, $node->{name}]
+                    GraphQLError(
+                        duplicate_arg_message($arg_name),
+                        [$known_arg_names{ $arg_name }, $node->{name}]
+                    )
                 );
             }
             else {

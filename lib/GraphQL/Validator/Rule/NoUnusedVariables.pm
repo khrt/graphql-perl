@@ -3,7 +3,9 @@ package GraphQL::Validator::Rule::NoUnusedVariables;
 use strict;
 use warnings;
 
-sub unsed_variable_message {
+use GraphQL::Error qw/GraphQLError/;
+
+sub unused_variable_message {
     my ($var_name, $op_name) = @_;
     return $op_name
         ? qq`Variable "\$$var_name" is never used in operation "$op_name".`
@@ -16,16 +18,17 @@ sub unsed_variable_message {
 # are used, either directly or within a spread fragment.
 sub validate {
     my ($self, $context) = @_;
-    my @variables_defs;
+    my @variable_defs;
 
     return {
-        OperationDefinition => sub {
+        OperationDefinition => {
             enter => sub {
-                @variables_defs = ();
+                @variable_defs = ();
                 return; # void
             },
             leave => sub {
                 my (undef, $operation) = @_;
+
 
                 my %variable_name_used;
                 my $usages = $context->get_recursive_variable_usages($operation);
@@ -36,13 +39,15 @@ sub validate {
                     $variable_name_used{ $node->{name}{value} } = 1;
                 }
 
-                for my $variable_def (@variables_defs) {
+                for my $variable_def (@variable_defs) {
                     my $variable_name = $variable_def->{variable}{name}{value};
 
                     unless ($variable_name_used{ $variable_name }) {
                         $context->report_error(
-                            unsed_variable_message($variable_name, $op_name),
-                            [$variable_def]
+                            GraphQLError(
+                                unused_variable_message($variable_name, $op_name),
+                                [$variable_def]
+                            )
                         );
                     }
                 }
@@ -52,7 +57,7 @@ sub validate {
         },
         VariableDefinition => sub {
             my (undef, $def) = @_;
-            push @variables_defs, $def;
+            push @variable_defs, $def;
             return; # void
         },
     };

@@ -3,6 +3,8 @@ package GraphQL::Validator::Rule::UniqueFragmentNames;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
+
 sub duplicate_fragment_name_message {
     my $frag_name = shift;
     return qq`There can be only one fragment named "$frag_name".`;
@@ -23,8 +25,10 @@ sub validate {
 
             if ($known_fragment_names{ $fragment_name }) {
                 $context->report_error(
-                    duplicate_fragment_name_message($fragment_name),
-                    [$known_fragment_names{ $fragment_name }, $node->{name}]
+                    GraphQLError(
+                        duplicate_fragment_name_message($fragment_name),
+                        [$known_fragment_names{ $fragment_name }, $node->{name}]
+                    )
                 );
             }
             else {

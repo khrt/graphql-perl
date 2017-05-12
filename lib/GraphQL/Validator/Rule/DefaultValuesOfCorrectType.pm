@@ -5,19 +5,22 @@ use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Printer qw/print_doc/;
-use GraphQL::Util qw/is_valid_literal_value/;
+use GraphQL::Util qw/
+    stringify_type
+    is_valid_literal_value
+/;
 
 sub default_for_non_null_arg_message {
     my ($var_name, $type, $guess_type) = @_;
-    return qq`Variable "\$$var_name" of type "${ \$type->to_string }" is required and `
+    return qq`Variable "\$$var_name" of type "${ stringify_type($type) }" is required and `
          . qq`will not use the default value. `
-         . qq`Perhaps you meant to use type "${ \$guess_type->to_string }".`;
+         . qq`Perhaps you meant to use type "${ stringify_type($guess_type) }".`;
 }
 
 sub bad_value_for_default_arg_message {
     my ($var_name, $type, $value, $verbose_errors) = @_;
     my $message = $verbose_errors ? "\n" . join("\n", @$verbose_errors) : '';
-    return qq`Variable "\$$var_name" of type "${ \$type->to_string }" has invalid `
+    return qq`Variable "\$$var_name" of type "${ stringify_type($type) }" has invalid `
          . qq`default value $value.$message`;
 }
 

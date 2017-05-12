@@ -3,8 +3,14 @@ package GraphQL::Validator::Rule::KnownArgumentNames;
 use strict;
 use warnings;
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Parser;
-use GraphQL::Util qw/find suggestion_list quoted_or_list/;
+use GraphQL::Util qw/
+    stringify_type
+    find
+    suggestion_list
+    quoted_or_list
+/;
 
 sub Kind { 'GraphQL::Language::Parser' }
 
@@ -12,9 +18,9 @@ sub unknown_arg_message {
     my ($arg_name, $field_name, $type, $suggested_args) = @_;
 
     my $message = qq`Unknown argument "$arg_name" on field "$field_name" of `
-        . qq`type "${ \$type->to_string }".`;
+                . qq`type "${ stringify_type($type) }".`;
 
-    if ($suggested_args) {
+    if ($suggested_args && @$suggested_args) {
         $message .= ' Did you mean ' . quoted_or_list($suggested_args) . '?';
     }
 
@@ -26,7 +32,7 @@ sub unknown_directive_arg_message {
 
     my $message = qq`Unknown argument "$arg_name" on directive "\@$directive_name".`;
 
-    if ($suggested_args) {
+    if ($suggested_args && @$suggested_args) {
         $message .= ' Did you mean ' . quoted_or_list($suggested_args) . '?';
     }
 
@@ -57,16 +63,18 @@ sub validate {
                         die unless $parent_type;
 
                         $context->report_error(
-                            unknown_arg_message(
-                                $node->{name}{value},
-                                $field_def->{name},
-                                $parent_type->{name},
-                                suggestion_list(
+                            GraphQLError(
+                                unknown_arg_message(
                                     $node->{name}{value},
-                                    [map { $_->{name} } @{ $field_def->{args} }]
-                                )
-                            ),
-                            [$node]
+                                    $field_def->{name},
+                                    $parent_type->{name},
+                                    suggestion_list(
+                                        $node->{name}{value},
+                                        [map { $_->{name} } @{ $field_def->{args} }]
+                                    )
+                                ),
+                                [$node]
+                            )
                         );
                     }
                 }
@@ -81,15 +89,17 @@ sub validate {
 
                     if (!$directive_arg_def) {
                         $context->report_error(
-                            unknown_directive_arg_message(
-                                $node->{name}{value},
-                                $directive->{name},
-                                suggestion_list(
+                            GraphQLError(
+                                unknown_directive_arg_message(
                                     $node->{name}{value},
-                                    [map { $_->{name} } @{ $directive->{args} }]
-                                )
-                            ),
-                            [$node]
+                                    $directive->{name},
+                                    suggestion_list(
+                                        $node->{name}{value},
+                                        [map { $_->{name} } @{ $directive->{args} }]
+                                    )
+                                ),
+                                [$node]
+                            )
                         );
                     }
                 }
