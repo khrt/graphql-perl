@@ -4,18 +4,22 @@ use strict;
 use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
-use GraphQL::Util qw/key_map/;
+use GraphQL::Util qw/
+    stringify_type
+    key_map
+/;
+use GraphQL::Language::Visitor qw/FALSE/;
 
 sub missing_field_arg_message {
     my ($field_name, $arg_name, $type) = @_;
-    return qq`Field "${field_name}" argument "${arg_name}" of type `
-         . qq`"${ \$type->to_string }" is required but not provided.`;
+    return qq`Field "$field_name" argument "$arg_name" of type `
+         . qq`"${ stringify_type($type) }" is required but not provided.`;
 }
 
 sub missing_directive_arg_message {
     my ($directive_name, $arg_name, $type) = @_;
-    return qq`Directive "@${directive_name}" argument "${arg_name}" of type `
-         . qq`"${ \$type->to_string }" is required but not provided.`;
+    return qq`Directive "\@$directive_name" argument "$arg_name" of type `
+         . qq`"${ stringify_type($type) }" is required but not provided.`;
 }
 
 # Provided required arguments
@@ -32,7 +36,7 @@ sub validate {
 
                 my $field_def = $context->get_field_def;
                 if (!$field_def) {
-                    return; # false
+                    return FALSE;
                 }
 
                 my $arg_nodes = $node->{arguments} || [];
@@ -64,15 +68,15 @@ sub validate {
 
                 my $directive_def = $context->get_directive;
                 if (!$directive_def) {
-                    return; # false
+                    return FALSE;
                 }
 
-                my $arg_nodes = $node->arguments || [];
+                my $arg_nodes = $node->{arguments} || [];
                 my $arg_node_map = key_map($arg_nodes, sub { $_[0]->{name}{value} });
 
                 for my $arg_def (@{ $directive_def->{args} }) {
                     my $arg_node = $arg_node_map->{ $arg_def->{name} };
-                    if (!$arg_node && $arg_def->type->isa('GraphQL::Type::NonNull')) {
+                    if (!$arg_node && $arg_def->{type}->isa('GraphQL::Type::NonNull')) {
                         $context->report_error(
                             GraphQLError(
                                 missing_directive_arg_message(

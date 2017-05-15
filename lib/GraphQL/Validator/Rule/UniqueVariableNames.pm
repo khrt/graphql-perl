@@ -23,7 +23,7 @@ sub validate {
             return; # void
         },
         VariableDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             my $variable_name = $node->{variable}{name}{value};
 
             if ($known_variable_names{ $variable_name }) {

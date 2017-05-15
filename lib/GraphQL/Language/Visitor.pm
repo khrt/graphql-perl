@@ -67,12 +67,14 @@ use constant QUERY_DOCUMENT_KEYS => {
 use constant {
     BREAK => {},
     NULL  => {},
+    FALSE => 0,
 };
 
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
-    QUERY_DOCUMENT_KEYS BREAK NULL
+    QUERY_DOCUMENT_KEYS
+    BREAK NULL FALSE
     visit visit_in_parallel visit_with_typeinfo
 /);
 
@@ -170,8 +172,8 @@ sub visit {
     my $index = -1;
     my $edits = [];
     my $parent;
-    my $path = [];
-    my $ancestors = [];
+    my @path;
+    my @ancestors;
     my $new_root = $root;
 
 NEXT:
@@ -183,9 +185,9 @@ NEXT:
 
         my ($key, $node);
         if ($is_leaving) {
-            $key = scalar(@$ancestors) == 0 ? undef : pop(@$path);
+            $key = scalar(@ancestors) == 0 ? undef : pop(@path);
             $node = $parent;
-            $parent = pop(@$ancestors);
+            $parent = pop(@ancestors);
 
             if ($is_edited) {
                 $node = defined($node) ? dclone $node : undef;
@@ -223,13 +225,19 @@ NEXT:
         }
         else {
             $key = $parent ? ($in_array ? $index : $keys->[$index]) : undef;
+            # say "\n\n";
+            # print 'node else BE '; p $node; say ref $node;
+            # p $in_array;
+            # p $key;
+            # p $parent;
             $node =
                 $parent
                 ? ($in_array ? $parent->[$key] : $parent->{$key})
                 : $new_root;
+            # print 'node else AF '; say ref $node;
 
             goto NEXT if !$node;
-            push @$path, $key if $parent;
+            push @path, $key if $parent;
         }
 
         my $result;
@@ -240,18 +248,12 @@ NEXT:
                 $d->Terse(1);
                 $d->Maxdepth(3);
 
-                if (ref($node) eq 'REF') {
-                    warn '$node IS A REF!';
-                }
-                # p($node, max_depth => 5);
-                # warn longmess 'Invalid AST Node';
-
                 die 'Invalid AST Node: ' . $d->Dump . "\n";
             }
 
             my $visit_fn = &get_visit_fn($visitor, $node->{kind}, $is_leaving);
             if ($visit_fn) {
-                $result = $visit_fn->($visitor, $node, $key, $parent, $path, $ancestors);
+                $result = $visit_fn->($visitor, $node, $key, $parent, \@path, \@ancestors);
                 goto END if ref($result) && $result == BREAK;
 
                 # TODO: Perlify all this undefined, null, true, and false
@@ -259,11 +261,10 @@ NEXT:
                 # if (result === false)
                 if (defined($result) && !$result) {
                     if (!$is_leaving) {
-                        pop @$path;
+                        pop @path;
                         goto NEXT;
                     }
                 }
-                # else if (result !== undefined)
                 elsif (defined($result)) {
                     push @$edits, [$key, (ref($result) && $result == NULL) ? undef : $result];
 
@@ -272,7 +273,7 @@ NEXT:
                             $node = $result;
                         }
                         else {
-                            pop @$path;
+                            pop @path;
                             goto NEXT;
                         }
                     }
@@ -299,7 +300,7 @@ NEXT:
             $edits = [];
 
             if ($parent) {
-                push @$ancestors, $parent;
+                push @ancestors, $parent;
             }
 
             $parent = $node;
@@ -329,6 +330,9 @@ sub is_node {
 sub visit_in_parallel {
     my $visitors = shift;
     my @skipping = (undef) x scalar(@$visitors);
+    # print 'visitors '; p $visitors;
+    # print 'visitors len '; warn scalar(@$visitors);
+    # print 'skipping '; p @skipping;
 
     return {
         enter => sub {
@@ -336,10 +340,15 @@ sub visit_in_parallel {
             my ($node) = @_;
 
             for (my $i = 0; $i < scalar(@$visitors); $i++) {
+                # say "enter i $i";
                 if (!$skipping[$i]) {
                     my $fn = get_visit_fn($visitors->[$i], $node->{kind}, undef);
                     if ($fn) {
+
+                        # TODO: Perlify all this undefined, null, true, and false
+
                         my $result = $fn->($visitors->[$i], @_);
+                        # print 'r '; p $result;
                         # if (result === false)
                         if (defined($result) && !$result) {
                             $skipping[$i] = $node;
@@ -347,7 +356,6 @@ sub visit_in_parallel {
                         elsif ($result && $result == BREAK) {
                             $skipping[$i] = BREAK;
                         }
-                        # else if (result !== undefined)
                         elsif (defined($result)) {
                             return $result;
                         }

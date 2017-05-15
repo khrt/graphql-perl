@@ -159,10 +159,9 @@ sub is_possible_type {
             . "all possible types in the schema.\n" if ref($possible_types) ne 'ARRAY';
 
         $possible_type_map->{ $abstract_type->name } = reduce {
-            $a->{ $b->name } = $b;
+            $a->{ $b->name } = 1;
+            $a;
         } {}, @$possible_types;
-p $possible_type_map;
-# die 'TODO';
     }
 
     return !!$possible_type_map->{ $abstract_type->name }{ $possible_type->name };

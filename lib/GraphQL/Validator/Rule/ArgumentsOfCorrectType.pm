@@ -5,6 +5,7 @@ use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Printer qw/print_doc/;
+use GraphQL::Language::Visitor qw/FALSE/;
 use GraphQL::Util qw/is_valid_literal_value/;
 
 sub bad_value_message {
@@ -42,7 +43,7 @@ sub validate {
                 }
             }
 
-            return; # false
+            return FALSE;
         },
     };
 }

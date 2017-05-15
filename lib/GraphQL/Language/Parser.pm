@@ -830,7 +830,7 @@ sub parse_object_type_definition {
         name => $name,
         interfaces => $interfaces,
         directives => $directives,
-        fields => \$fields,
+        fields => $fields,
         loc($lexer, $start),
     };
 }
@@ -869,7 +869,7 @@ sub parse_field_definition {
     return {
         kind => FIELD_DEFINITION,
         name => $name,
-        arguments => $lexer,
+        arguments => $args,
         type => $type,
         directives => $directives,
         loc($lexer, $start),
@@ -1066,7 +1066,7 @@ sub parse_directive_definition {
     return {
         kind => DIRECTIVE_DEFINITION,
         name => $name,
-        arguments => $lexer,
+        arguments => $args,
         locations => $locations,
         loc($lexer, $start),
     };

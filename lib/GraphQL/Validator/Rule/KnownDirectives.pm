@@ -49,13 +49,7 @@ sub validate {
                 return;
             }
 
-            # TODO
             my $candidate_location = get_directive_location_for_ast_path($ancestors);
-
-            # print 'cl '; p $candidate_location;
-            # print 'defdef loc '; p $directive_def->{locations};
-            # print 'indefox '; p none { $_ eq $candidate_location } @{ $directive_def->{locations} };
-
             if (!$candidate_location) {
                 $context->report_error(
                     GraphQLError(

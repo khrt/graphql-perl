@@ -5,6 +5,7 @@ use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Printer qw/print_doc/;
+use GraphQL::Language::Visitor qw/FALSE/;
 use GraphQL::Util qw/
     stringify_type
     is_valid_literal_value
@@ -61,10 +62,10 @@ sub validate {
                 }
             }
 
-            return; # false
+            return FALSE
         },
-        SelectionSet => sub { return }, # false
-        FragmentDefinition => sub { return }, # false
+        SelectionSet => sub { FALSE },
+        FragmentDefinition => sub { FALSE },
     };
 }
 

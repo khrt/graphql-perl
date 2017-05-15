@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Language::Visitor qw/FALSE/;
 
 sub duplicate_fragment_name_message {
     my $frag_name = shift;
@@ -18,7 +19,7 @@ sub validate {
     my %known_fragment_names;
 
     return {
-        OperationDefinition => sub { return }, #false,
+        OperationDefinition => sub { FALSE },
         FragmentDefinition => sub {
             my (undef, $node) = @_;
             my $fragment_name = $node->{name}{value};
@@ -35,7 +36,7 @@ sub validate {
                 $known_fragment_names{ $fragment_name } = $node->{name};
             }
 
-            return; # false
+            return FALSE;
         },
     };
 }

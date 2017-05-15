@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Util qw/stringify_type/;
 use GraphQL::Util::Type qw/
     get_named_type
     is_leaf_type
@@ -12,12 +13,12 @@ use GraphQL::Util::Type qw/
 sub no_subselection_allowed_message {
     my ($field_name, $type) = @_;
     return qq`Field "$field_name" must not have a selection since `
-         . qq`type "${ \$type->to_string }" has no subfields.`;
+         . qq`type "${ stringify_type($type) }" has no subfields.`;
 }
 
 sub required_subselection_message {
     my ($field_name, $type) = @_;
-    return qq`Field "$field_name" of type "${ \$type->to_string }" must have a `
+    return qq`Field "$field_name" of type "${ stringify_type($type) }" must have a `
          . qq`selection of subfields. Did you mean "$field_name { ... }"?`;
 }
 

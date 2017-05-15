@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::NoUnusedFragments;
 use strict;
 use warnings;
 
+use GraphQL::Language::Visitor qw/FALSE/;
 use GraphQL::Error qw/GraphQLError/;
 
 sub unused_frag_message {
@@ -22,12 +23,12 @@ sub validate {
         OperationDefinition => sub {
             my (undef, $node) = @_;
             push @operation_defs, $node;
-            return; # false
+            return FALSE;
         },
         FragmentDefinition => sub {
             my (undef, $node) = @_;
             push @fragment_defs, $node;
-            return; # false
+            return FALSE;
         },
         Document => {
             leave => sub {

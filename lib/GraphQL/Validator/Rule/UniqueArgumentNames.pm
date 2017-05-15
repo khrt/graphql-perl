@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Language::Visitor qw/FALSE/;
 
 sub duplicate_arg_message {
     my $arg_name = shift;
@@ -42,7 +43,7 @@ sub validate {
                 $known_arg_names{ $arg_name } = $node->{name};
             }
 
-            return; # false
+            return FALSE;
         },
     };
 }

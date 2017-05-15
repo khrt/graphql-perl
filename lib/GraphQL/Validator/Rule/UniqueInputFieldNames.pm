@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::UniqueInputFieldNames;
 use strict;
 use warnings;
 
+use GraphQL::Language::Visitor qw/FALSE/;
 use GraphQL::Error qw/GraphQLError/;
 
 sub duplicate_input_field_message {
@@ -15,7 +16,7 @@ sub duplicate_input_field_message {
 # A GraphQL input object value is only valid if all supplied fields are
 # uniquely named.
 sub validate {
-    my $context = shift;
+    my ($self, $context) = @_;
 
     my @known_name_stack;
     my %known_names;
@@ -23,17 +24,17 @@ sub validate {
     return {
         ObjectValue => {
             enter => sub {
-                push @known_name_stack, %known_names;
+                push @known_name_stack, \%known_names;
                 %known_names = ();
                 return; # void
             },
             leave => sub {
-                %known_names = pop @known_name_stack;
+                %known_names = %{ pop @known_name_stack };
                 return; # void
             }
         },
         ObjectField => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             my $field_name = $node->{name}{value};
 
             if ($known_names{ $field_name }) {
@@ -48,7 +49,7 @@ sub validate {
                 $known_names{ $field_name } = $node->{name};
             }
 
-            return; # false
+            return FALSE;
         },
     };
 }

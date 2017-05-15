@@ -4,13 +4,17 @@ use strict;
 use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
-use GraphQL::Util qw/type_from_ast/;
+use GraphQL::Type qw/GraphQLNonNull/;
+use GraphQL::Util qw/
+    stringify_type
+    type_from_ast
+/;
 use GraphQL::Util::Type qw/is_type_subtype_of/;
 
 sub bad_var_pos_message {
     my ($var_name, $var_type, $expected_type) = @_;
-    return qq`Variable "\$$var_name" of type "${ \$var_type->to_string }" used in `
-         . qq`position expecting type "${ \$expected_type->to_string }".`;
+    return qq`Variable "\$$var_name" of type "${ stringify_type($var_type) }" used in `
+         . qq`position expecting type "${ stringify_type($expected_type) }".`;
 }
 
 # Variables passed to field arguments conform to type
@@ -25,7 +29,7 @@ sub validate {
                 return; # void
             },
             leave => sub {
-                my $operation = shift;
+                my (undef, $operation) = @_;
                 my $usages = $context->get_recursive_variable_usages($operation);
 
                 for my $usage (@$usages) {
@@ -41,9 +45,9 @@ sub validate {
                         # If both are list types, the variable item type can be more strict
                         # than the expected item type (contravariant).
                         my $schema = $context->get_schema;
-                        my $var_type = type_from_ast($schema, $var_def->type);
+                        my $var_type = type_from_ast($schema, $var_def->{type});
                         if ($var_type &&
-                            !is_type_sub_type_of($schema, effective_type($var_type, $var_def), $type))
+                            !is_type_subtype_of($schema, effective_type($var_type, $var_def), $type))
                         {
                             $context->report_error(
                                 GraphQLError(
@@ -59,7 +63,7 @@ sub validate {
             }
         },
         VariableDefinition => sub {
-            my $node = shift;
+            my (undef, $node) = @_;
             $var_def_map{ $node->{variable}{name}{value} } = $node;
             return; # void
         },

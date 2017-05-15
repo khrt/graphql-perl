@@ -47,29 +47,26 @@ sub is_equal_type {
 sub do_types_overlap {
     my ($schema, $type_a, $type_b) = @_;
 
-    # So flow is aware this is constant
-    my $_type_b = $type_b;
-
     # Equivalent types overlap
-    if ($type_a == $_type_b) {
+    if ($type_a == $type_b) {
         return 1;
     }
 
     if (is_abstract_type($type_a)) {
-        if (is_abstract_type($_type_b)) {
+        if (is_abstract_type($type_b)) {
             # If both types are abstract, then determine if there is any intersection
             # between possible concrete types of each.
-            return any { $schema->is_possible_type($_type_b, $_) }
-            @{ $schema->get_possible_types($type_a) };
+            return any { $schema->is_possible_type($type_b, $_) }
+                @{ $schema->get_possible_types($type_a) };
         }
 
         # Determine if the latter type is a possible concrete type of the former.
-        return $schema->is_possible_type($type_a, $_type_b);
+        return $schema->is_possible_type($type_a, $type_b);
     }
 
-    if (is_abstract_type($_type_b)) {
+    if (is_abstract_type($type_b)) {
         # Determine if the former type is a possible concrete type of the latter.
-        return $schema->is_possible_type($_type_b, $type_a);
+        return $schema->is_possible_type($type_b, $type_a);
     }
 
     # Otherwise the types do not overlap.

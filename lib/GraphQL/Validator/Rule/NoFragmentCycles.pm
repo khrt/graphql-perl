@@ -3,6 +3,7 @@ package GraphQL::Validator::Rule::NoFragmentCycles;
 use strict;
 use warnings;
 
+use GraphQL::Language::Visitor qw/FALSE/;
 use GraphQL::Error qw/GraphQLError/;
 
 sub cycle_error_message {
@@ -83,7 +84,7 @@ sub validate {
                 $detect_cycle_recursive->($node);
             }
 
-            return; # false
+            return FALSE;
         },
     };
 }

@@ -4,19 +4,24 @@ use strict;
 use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
-use GraphQL::Util qw/type_from_ast/;
+use GraphQL::Util qw/
+    stringify_type
+    type_from_ast
+/;
 use GraphQL::Util::TypeComparators qw/do_types_overlap/;
+
+use DDP;
 
 sub type_incompatible_spread_message {
     my ($frag_name, $parent_type, $frag_type) = @_;
     return qq`Fragment "${frag_name}" cannot be spread here as objects of `
-         . qq`type "${ \$parent_type->to_string }" can never be of type "${ \$frag_type->to_string }".`;
+         . qq`type "${ stringify_type($parent_type) }" can never be of type "${ stringify_type($frag_type) }".`;
 }
 
 sub type_incompatible_anon_spread_message {
     my ($parent_type, $frag_type) = @_;
     return qq`Fragment cannot be spread here as objects of `
-         . qq`type "${ \$parent_type->to_string }" can never be of type "${ \$frag_type->to_string }".`;
+         . qq`type "${ stringify_type($parent_type) }" can never be of type "${ stringify_type($frag_type) }".`;
 }
 
 # Possible fragment spread
@@ -50,7 +55,7 @@ sub validate {
         FragmentSpread => sub {
             my (undef, $node) = @_;
 
-            my $frag_name = $node->name->value;
+            my $frag_name = $node->{name}{value};
             my $frag_type = get_fragment_type($context, $frag_name);
             my $parent_type = $context->get_parent_type;
 

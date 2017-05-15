@@ -3,15 +3,25 @@ package GraphQL::Validator::Rule::OverlappingFieldsCanBeMerged;
 use strict;
 use warnings;
 
+use DDP;
 use List::Util qw/all reduce/;
 
 use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Parser;
+use GraphQL::Language::Printer qw/print_doc/;
+use GraphQL::Util qw/
+    find
+    type_from_ast
+/;
+use GraphQL::Util::Type qw/
+    is_leaf_type
+/;
 
 sub Kind { 'GraphQL::Language::Parser' }
 
 sub fields_conflict_message {
-    my ($response_name, $reason) = @_; return qq`Fields "$response_name" conflict because ${ \reason_message($reason) }. `
+    my ($response_name, $reason) = @_;
+    return qq`Fields "$response_name" conflict because ${ \reason_message($reason) }. `
          . qq`Use different aliases on the fields to fetch both if this was intentional.`;
 }
 
@@ -64,7 +74,7 @@ sub validate {
                 $context->report_error(
                     GraphQLError(
                         fields_conflict_message($response_name, $reason),
-                        [$fields1, $fields2]
+                        [@$fields1, @$fields2]
                     )
                 );
             }
@@ -137,7 +147,10 @@ sub find_conflicts_within_selection_set {
     my @conflicts;
 
     my ($field_map, $fragment_names) = get_fields_and_fragment_names(
-        $context, $cached_fields_and_fragment_names, $parent_type, $selection_set
+        $context,
+        $cached_fields_and_fragment_names,
+        $parent_type,
+        $selection_set
     );
 
     # (A) Find find all conflicts "within" the fields of this selection set.
@@ -229,6 +242,85 @@ sub collect_conflicts_between_fields_and_fragment {
     return;
 }
 
+# Collect all conflicts found between two fragments, including via spreading in
+# any nested fragments.
+sub collect_conflicts_between_fragments {
+    my ($context, $conflicts, $cached_fields_and_fragment_names, $compared_fragments,
+        $are_mutually_exclusive, $fragment_name1, $fragment_name2) = @_;
+
+  my $fragment1 = $context->get_fragment($fragment_name1);
+  my $fragment2 = $context->get_fragment($fragment_name2);
+  if (!$fragment1 || !$fragment2) {
+    return;
+  }
+
+  # No need to compare a fragment to itself.
+  # TODO
+  if ($fragment1 == $fragment2) {
+    return;
+  }
+
+  # Memoize so two fragments are not compared for conflicts more than once.
+  # TODO
+  #if (
+  #  $compared_fragments.has($fragment_name1, $fragment_name2, $are_mutually_exclusive)
+  #) {
+  #  return;
+  #}
+  #$compared_fragments.add($fragment_name1, $fragment_name2, $are_mutually_exclusive);
+
+  my ($field_map1, $fragment_names1) = get_referenced_fields_and_fragment_names(
+    $context,
+    $cached_fields_and_fragment_names,
+    $fragment1
+  );
+  my ($field_map2, $fragment_names2) = get_referenced_fields_and_fragment_names(
+    $context,
+    $cached_fields_and_fragment_names,
+    $fragment2
+  );
+
+  # (F) First, collect all conflicts between these two collections of fields
+  # (not including any nested fragments).
+  collect_conflicts_between(
+    $context,
+    $conflicts,
+    $cached_fields_and_fragment_names,
+    $compared_fragments,
+    $are_mutually_exclusive,
+    $field_map1,
+    $field_map2
+  );
+
+  # (G) Then collect conflicts between the first fragment and any nested
+  # fragments spread in the second fragment.
+  for (my $j = 0; $j < scalar(@$fragment_names2); $j++) {
+    collect_conflicts_between_fragments(
+      $context,
+      $conflicts,
+      $cached_fields_and_fragment_names,
+      $compared_fragments,
+      $are_mutually_exclusive,
+      $fragment_name1,
+      $fragment_names2->[$j]
+    );
+  }
+
+  # (G) Then collect conflicts between the second fragment and any nested
+  # fragments spread in the first fragment.
+  for (my $i = 0; $i < scalar(@$fragment_names1); $i++) {
+    collect_conflicts_between_fragments(
+      $context,
+      $conflicts,
+      $cached_fields_and_fragment_names,
+      $compared_fragments,
+      $are_mutually_exclusive,
+      $fragment_names1->[$i],
+      $fragment_name2
+    );
+  }
+}
+
 # Find all conflicts found between two selection sets, including those found
 # via spreading in fragments. Called when determining if conflicts exist
 # between the sub-fields of two overlapping fields.
@@ -252,6 +344,9 @@ sub find_conflicts_between_subselection_sets {
         $parent_type2,
         $selection_set2
     );
+
+    print 'fm1 ';p $field_map1;
+    print 'fm2 ';p $field_map2;
 
     # (H) First, collect all conflicts between these two collections of field.
     collect_conflicts_between(
@@ -363,12 +458,13 @@ sub collect_conflicts_between {
     # response name. For any response name which appears in both provided field
     # maps, each field from the first field map must be compared to every field
     # in the second field map to find potential conflicts.
+    print 'ccb fm1 '; p $field_map1;
     for my $response_name (keys %$field_map1) {
         my $fields2 = $field_map2->{ $response_name };
         if ($fields2) {
             my $fields1 = $field_map1->{ $response_name };
-            for (my $i = 0; $i < $fields1.length; $i++) {
-                for (my $j = 0; $j < $fields2.length; $j++) {
+            for (my $i = 0; $i < scalar(@$fields1); $i++) {
+                for (my $j = 0; $j < scalar(@$fields2); $j++) {
                     my $conflict = find_conflict(
                         $context,
                         $cached_fields_and_fragment_names,
@@ -378,6 +474,7 @@ sub collect_conflicts_between {
                         $fields1->[$i],
                         $fields2->[$j]
                     );
+
                     push @$conflicts, $conflict if $conflict;
                 }
             }
@@ -541,11 +638,11 @@ sub get_fields_and_fragment_names {
             $fragment_names
         );
 
-        $cached = [$node_and_defs, keys %$fragment_names];
+        $cached = [$node_and_defs, [keys %$fragment_names]];
         $cached_fields_and_fragment_names->{ $selection_set } = $cached;
     }
 
-    return $cached;
+    return @$cached;
 }
 
 # Given a reference to a fragment, return the represented collection of fields
@@ -578,8 +675,12 @@ sub _collect_fields_and_fragment_names {
             my $field_name = $selection->{name}->{value};
             my $field_def;
 
-            if ($parent_type->isa('GraphQL::Type::Object') || $parent_type->isa('GraphQL::Type::Interface')) {
-                $field_def = $parent_type->get_fields->{ $field_name };
+            if ($parent_type
+                && (   $parent_type->isa('GraphQL::Type::Object')
+                    || $parent_type->isa('GraphQL::Type::Interface'))
+                )
+            {
+                $field_def = $parent_type->get_fields->{$field_name};
             }
 
             my $response_name = $selection->{alias} ? $selection->{alias}->{value} : $field_name;

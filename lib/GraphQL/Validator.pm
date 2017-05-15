@@ -113,7 +113,7 @@ use constant {
         'VariablesInAllowedPosition',
 
         # Spec Section: "Field Selection Merging"
-        # 'OverlappingFieldsCanBeMerged',
+        # TODO 'OverlappingFieldsCanBeMerged',
 
         # Spec Section: "Input Object Field Uniqueness"
         'UniqueInputFieldNames',
