@@ -12,6 +12,7 @@ our @EXPORT_OK = (qw/
     GraphQLError
 
     format_error
+    located_error
 /);
 
 # sub new {
@@ -77,6 +78,33 @@ sub GraphQLError {
         positions => $_positions,
         original_error => $original_error,
     };
+}
+
+# Given an arbitrary Error, presumably thrown while attempting to execute a
+# GraphQL operation, produce a new GraphQLError aware of the location in the
+# document responsible for the original Error.
+sub located_error {
+    my ($original_error, $nodes, $path) = @_;
+
+    # Note: this uses a brand-check to support GraphQL errors originating from
+    # other contexts.
+    if ($original_error && $original_error->{path}) {
+        return $original_error;
+    }
+
+    my $message =
+          $original_error
+        ? $original_error->{message} || String($original_error)
+        : 'An unknown error occurred.';
+
+    return GraphQLError(
+        $message,
+        $original_error && $original_error->{nodes} || $nodes,
+        $original_error && $original_error->{source},
+        $original_error && $original_error->{positions},
+        $path,
+        $original_error
+    );
 }
 
 1;

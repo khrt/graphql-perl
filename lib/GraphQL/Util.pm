@@ -11,19 +11,20 @@ use List::Util qw/reduce max min/;
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
-    stringify_type
-
     assert_valid_name
     find
+    key_map
+
+    is_invalid
+    is_valid_js_value
+    is_valid_literal_value
 
     quoted_or_list
+    stringify_type
     suggestion_list
 
     type_from_ast
-
-    key_map
-
-    is_valid_literal_value
+    value_from_ast
 /);
 
 use GraphQL::Language::Parser;
@@ -32,15 +33,6 @@ use GraphQL::Language::Printer qw/print_doc/;
 # use GraphQL::Type qw/:all/;
 
 sub Kind { 'GraphQL::Language::Parser' }
-
-sub stringify_type {
-    my $type = shift;
-    my $str =
-          blessed($type) && $type->can('to_string') ? $type->to_string
-        : ref($type) ? ref($type)
-        :              $type;
-    return \$str;
-}
 
 # Ensures consoles warnigns are only issued once.
 our $has_warned_about_dunder;
@@ -75,6 +67,188 @@ sub find {
     return;
 }
 
+sub key_map {
+    my ($list, $key_fn) = @_;
+
+    my %result;
+    for my $i (@$list) {
+        my $key = $key_fn->($i);
+        next unless $key;
+        $result{ $key } = $i;
+    }
+
+    return \%result;
+}
+
+sub is_invalid {
+    my $value = shift;
+    return !defined($value) || $value ne $value;
+}
+
+# Given a JavaScript value and a GraphQL type, determine if the value will be
+# accepted for that type. This is primarily useful for validating the
+# runtime values of query variables.
+sub is_valid_js_value {
+    my ($value, $type) = @_;
+
+    # A value must be provided if the type is non-null.
+    if ($type->isa('GraphQL::Type::NonNull')) {
+        unless($value) {
+            return [qq`Expected "${ stringify_type($type) }", found null.`];
+        }
+        return is_valid_js_value($value, $type->of_type);
+    }
+
+    return [] unless $value;
+
+    # List accept a non-list value as a list of one.
+    if ($type->isa('GraphQL::Type::List')) {
+        my $item_type = $type->of_type;
+        if (is_collection($value)) {
+            my @errors;
+            my $index = 0;
+            for my $item (@$value) {
+                my $e = is_valid_js_value($item, $item_type);
+                push @errors, map { qq`In element #$index: $_` } @$e;
+                $index++;
+            }
+            return \@errors;
+        }
+
+        return is_valid_js_value($value, $item_type);
+    }
+
+    # Input objects check each defined field.
+    if ($type->isa('GraphQL::Type::InputObject')) {
+        if (!$value || ref($value) ne 'HASH') {
+            return [qq`Expected "$type->{name}", found not an object.`];
+        }
+
+        my $fields = $type->get_fields;
+        my @errors;
+
+        # Ensure every provided field is defined.
+        for my $provided_field (keys %$value) {
+            unless ($fields->{ $provided_field }) {
+                push @errors, [qq`In field "$provided_field": Unknown field.`];
+            }
+        }
+
+        # Ensure every defined field is valid.
+        for my $field_name (keys $fields) {
+            my $new_errors = is_valid_js_value($value->{ $field_name }, $fields->{ $field_name }->{type});
+            push @errors, map { qq`In field "$field_name": $_` } @$new_errors;
+        }
+
+        return \@errors;
+    }
+
+    die "Must be input type\n"
+        if !$type->isa('GraphQL::Type::Scalar')
+        && !$type->isa('GraphQL::Type::Enum');
+
+    # Scalar/Enum input type checks to ensure the type can parse the value to
+    # a non-null value.
+    eval {
+        my $parse_result = $type->parse_value($value);
+        unless ($parse_result) {
+            return [
+                qq`Expected type "$type->{name}", found ${ stringify($value) }.`
+            ];
+        }
+    } or do {
+        my $e = $@;
+        return [
+            qq`Expected type "$type->{name}", found ${ stringify($value) }: `
+            . $e->{message}
+        ];
+    };
+
+    return [];
+}
+
+sub is_valid_literal_value {
+    my ($type, $value_node) = @_;
+
+    # A value must be provided if the type is non-null.
+    if ($type->isa('GraphQL::Type::NonNull')) {
+        if (!$value_node || ($value_node->{kind} eq Kind->NULL)) {
+            return [qq`Expected "${ \$type->to_string}", found null.`];
+        }
+        return is_valid_literal_value($type->of_type, $value_node);
+    }
+
+    if (!$value_node || ($value_node->{kind} eq Kind->NULL)) {
+        return [];
+    }
+
+    # This function only tests literals, and assumes variables will provide
+    # values of the correct type.
+    if ($value_node->{kind} eq Kind->VARIABLE) {
+        return [];
+    }
+
+    # Lists accept a non-list value as a list of one.
+    if ($type->isa('GraphQL::Type::List')) {
+        my $item_type = $type->of_type;
+        if ($value_node->{kind} eq Kind->LIST) {
+            my $index = 1;
+            return reduce {
+                my $errors = is_valid_literal_value($item_type, $b);
+                push @$a, map { "In element #$index: $_" } @$errors;
+                $a;
+            } [], @{ $value_node->{values} };
+        }
+        return is_valid_literal_value($item_type, $value_node);
+    }
+
+    # Input objects check each defined field and look for undefined fields.
+    if ($type->isa('GraphQL::Type::InputObject')) {
+        if ($value_node->{kind} ne Kind->OBJECT) {
+            return [qq`Expected "${ \$type->name }", found not an object.`];
+        }
+
+        my $fields = $type->get_fields;
+        my @errors;
+
+        # Ensure every provided field is defined.
+        my $field_nodes = $value_node->{fields};
+        for my $provided_field_node (@$field_nodes) {
+            if (!$fields->{ $provided_field_node->{name}{value} }) {
+                push @errors,
+                    qq`In field "${ \$provided_field_node->{name}{value} }": Unknown field.`;
+            }
+        }
+
+        # Ensure every defined field is valid.
+        my $field_node_map = key_map($field_nodes, sub { $_[0]->{name}{value} });
+        for my $field_name (keys %$fields) {
+            my $result = is_valid_literal_value(
+                $fields->{ $field_name }{type},
+                $field_node_map->{ $field_name } && $field_node_map->{ $field_name }{value}
+            );
+            push @errors, map { qq`In field "$field_name": $_`  } @$result;
+        }
+
+        return \@errors;
+    }
+
+    die 'Must be input type'
+        if !$type->isa('GraphQL::Type::Scalar')
+        && !$type->isa('GraphQL::Type::Enum');
+
+    # Scalar/Enum input checks to ensure the type can parse the value to
+    # a non-null value.
+    my $parse_result = $type->parse_literal($value_node);
+# print 'parse_result '; p $parse_result;
+    unless (defined $parse_result) {
+        return [qq`Expected type "${ \$type->name }", found ${ \print_doc($value_node) }.`];
+    }
+
+    return [];
+}
+
+
 # Given [ A, B, C ] return '"A", "B", or "C"'.
 sub quoted_or_list {
     my $items = shift;
@@ -92,6 +266,14 @@ sub quoted_or_list {
     } map { qq`"$_"` } @selected;
 }
 
+sub stringify_type {
+    my $type = shift;
+    my $str =
+          blessed($type) && $type->can('to_string') ? $type->to_string
+        : ref($type) ? ref($type)
+        :              $type;
+    return \$str;
+}
 
 # Given an invalid input string and a list of valid options, returns a filtered
 # list of valid options sorted based on their similarity with the input.
@@ -194,97 +376,158 @@ sub type_from_ast {
     return $schema->get_type($type_node->{name}{value});
 }
 
-sub key_map {
-    my ($list, $key_fn) = @_;
+# Produces a JavaScript value given a GraphQL Value AST.
+#
+# A GraphQL type must be provided, which will be used to interpret different
+# GraphQL Value literals.
+#
+# Returns `undefined` when the value could not be validly coerced according to
+# the provided type.
+#
+# | GraphQL Value        | JSON Value    |
+# | -------------------- | ------------- |
+# | Input Object         | Object        |
+# | List                 | Array         |
+# | Boolean              | Boolean       |
+# | String               | String        |
+# | Int / Float          | Number        |
+# | Enum Value           | Mixed         |
+# | NullValue            | null          |
+sub value_from_ast {
+    my ($value_node, $type, $variables) = @_;
 
-    my %result;
-    for my $i (@$list) {
-        my $key = $key_fn->($i);
-        $result{ $key } = $i;
+    unless ($value_node) {
+        # When there is no node, then there is also no value.
+        # Importantly, this is different from returning the value null.
+        return;
     }
 
-    return \%result;
-}
-
-sub is_valid_literal_value {
-    my ($type, $value_node) = @_;
-
-    # A value must be provided if the type is non-null.
     if ($type->isa('GraphQL::Type::NonNull')) {
-        if (!$value_node || ($value_node->{kind} eq Kind->NULL)) {
-            return [qq`Expected "${ \$type->to_string}", found null.`];
+        if ($value_node->{kind} eq Kind->NULL) {
+            return; # Invalid: intentionally return no value.
         }
-        return is_valid_literal_value($type->of_type, $value_node);
+
+        return value_from_ast($value_node, $type->of_type, $variables);
     }
 
-    if (!$value_node || ($value_node->{kind} eq Kind->NULL)) {
-        return [];
+    if ($value_node->{kind} eq Kind->NULL) {
+        # This is explicitly returning the value null.
+        # TODO
+        return 0;
     }
 
-    # This function only tests literals, and assumes variables will provide
-    # values of the correct type.
     if ($value_node->{kind} eq Kind->VARIABLE) {
-        return [];
+        my $variable_name = $value_node->{name}{value};
+        if (!$variables || is_invalid($variables->{ $variable_name })) {
+            # No valid return value.
+            return;
+        }
+
+        # Note: we're not doing any checking that this variable is correct. We're
+        # assuming that this query has been validated and the variable usage here
+        # is of the correct type.
+        return $variables->{ $variable_name };
     }
 
-    # Lists accept a non-list value as a list of one.
     if ($type->isa('GraphQL::Type::List')) {
         my $item_type = $type->of_type;
+
         if ($value_node->{kind} eq Kind->LIST) {
-            my $index = 1;
-            return reduce {
-                my $errors = is_valid_literal_value($item_type, $b);
-                push @$a, map { "In element #$index: $_" } @$errors;
-                $a;
-            } [], @{ $value_node->{values} };
+            my @coerced_values;
+            my $item_nodes = $value_node->{values};
+
+            for my $item_node (@$item_nodes) {
+                if (is_missing_variable($item_node, $variables)) {
+                    # If an array contains a missing variable, it is either
+                    # coerced to null or if the item type is non-null, it
+                    # considered invalid
+                    if ($item_type->isa('GraphQL::Type::NonNull')) {
+                        return; # Invalid: intentionally return no value.
+                    }
+                    push @coerced_values, undef; # null
+                }
+                else {
+                    my $item_value = value_from_ast($item_node, $item_type, $variables);
+                    if (is_invalid($item_value)) {
+                        return; # Invalid: intentionally return no value.
+                    }
+                    push @coerced_values, $item_value;
+                }
+            }
+
+            return \@coerced_values;
         }
-        return is_valid_literal_value($item_type, $value_node);
+
+        my $coerced_value = value_from_ast($value_node, $item_type, $variables);
+        if (is_invalid($coerced_value)) {
+            return; # Invalid: intentionally return no value.
+        }
+
+        return [$coerced_value];
     }
 
-    # Input objects check each defined field and look for undefined fields.
     if ($type->isa('GraphQL::Type::InputObject')) {
         if ($value_node->{kind} ne Kind->OBJECT) {
-            return [qq`Expected "${ \$type->name }", found not an object.`];
+            return; # Invalid: intentionally return no value.
         }
 
+        my %coerced_obj;
         my $fields = $type->get_fields;
-        my @errors;
+        my $field_nodes = key_map(
+            $value_node->fields,
+            sub { $_[0]->{name}{value} }
+        );
+        my $field_names = keys %$fields;
 
-        # Ensure every provided field is defined.
-        my $field_nodes = $value_node->{fields};
-        for my $provided_field_node (@$field_nodes) {
-            if (!$fields->{ $provided_field_node->{name}{value} }) {
-                push @errors,
-                    qq`In field "${ \$provided_field_node->{name}{value} }": Unknown field.`;
+        for my $field_name (keys %$field_names) {
+            my $field = $fields->{ $field_name };
+            my $field_node = $field_nodes->{ $field_name };
+
+            if (!$field_node
+                || is_missing_variable($field_node->{value}, $variables))
+            {
+                if (!is_invalid($field->{default_value})) {
+                    $coerced_obj{ $field_name } = $field->{default_value};
+                }
+                elsif ($field->{type}->isa('GraphQL::type::NonNull')) {
+                    return; # Invalid: intentionally return no value.
+                }
+
+                next;
             }
+
+            my $field_value =
+                value_from_ast($field_node->{value}, $field->{type}, $variables);
+            if (is_invalid($field_value)) {
+                return; # Invalid: intentionally return no value.
+            }
+
+            $coerced_obj{ $field_name } = $field_value;
         }
 
-        # Ensure every defined field is valid.
-        my $field_node_map = key_map($field_nodes, sub { $_[0]->{name}{value} });
-        for my $field_name (keys %$fields) {
-            my $result = is_valid_literal_value(
-                $fields->{ $field_name }{type},
-                $field_node_map->{ $field_name } && $field_node_map->{ $field_name }{value}
-            );
-            push @errors, map { qq`In field "$field_name": $_`  } @$result;
-        }
-
-        return \@errors;
+        return \%coerced_obj;
     }
 
-    die 'Must be input type'
+    die "Must be input type\n"
         if !$type->isa('GraphQL::Type::Scalar')
         && !$type->isa('GraphQL::Type::Enum');
 
-    # Scalar/Enum input checks to ensure the type can parse the value to
-    # a non-null value.
-    my $parse_result = $type->parse_literal($value_node);
-# print 'parse_result '; p $parse_result;
-    unless (defined $parse_result) {
-        return [qq`Expected type "${ \$type->name }", found ${ \print_doc($value_node) }.`];
+    my $parsed = $type->parse_literal($value_node);
+    unless ($parsed) {
+        # null or invalid values represent a failure to parse correctly,
+        # in which case no value is returned.
+        return;
     }
 
-    return [];
+    return $parsed;
+}
+
+# Returns true if the provided valueNode is a variable which is not defined
+# in the set of variables.
+sub is_missing_variable {
+    my ($value_node, $variables) = @_;
+    return $value_node->{kind} eq Kind->VARIABLE &&
+        (!$variables || is_invalid($variables->{ $value_node->{name}{value} }));
 }
 
 1;
