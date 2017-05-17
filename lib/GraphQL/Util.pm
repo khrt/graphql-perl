@@ -135,7 +135,7 @@ sub is_valid_js_value {
         }
 
         # Ensure every defined field is valid.
-        for my $field_name (keys $fields) {
+        for my $field_name (keys %$fields) {
             my $new_errors = is_valid_js_value($value->{ $field_name }, $fields->{ $field_name }->{type});
             push @errors, map { qq`In field "$field_name": $_` } @$new_errors;
         }
@@ -156,8 +156,9 @@ sub is_valid_js_value {
                 qq`Expected type "$type->{name}", found ${ stringify($value) }.`
             ];
         }
-    } or do {
-        my $e = $@;
+    };
+
+    if (my $e = $@) {
         return [
             qq`Expected type "$type->{name}", found ${ stringify($value) }: `
             . $e->{message}
