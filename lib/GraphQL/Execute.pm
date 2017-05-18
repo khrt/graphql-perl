@@ -13,10 +13,10 @@ use feature 'say';
 use Carp 'longmess';
 use DDP {
     indent => 2,
-    max_depth => 3,
+    max_depth => 5,
     index => 0,
     class => {
-        internals => 0,
+        internals => 1,
         show_methods => 'none',
     },
     filters => {
@@ -33,10 +33,9 @@ use DDP {
         'GraphQL::Type::Union'       => sub { shift->to_string },
         },
     caller_info => 0,
-    # use_prototypes => 0,
 };
 use List::Util qw/reduce/;
-use Scalar::Util qw/blessed/;
+use Scalar::Util qw/blessed reftype/;
 
 use GraphQL::Error qw/
     located_error
@@ -122,9 +121,7 @@ sub build_execution_context {
     for my $def (@{ $document->{definitions} }) {
         if ($def->{kind} eq Kind->OPERATION_DEFINITION) {
             if (!$operation_name && $operation) {
-                die GraphQLError(
-                    'Must provide name if query contains multiple operations.'
-                );
+                die "Must provide operation name if query contains multiple operations.\n"
             }
 
             if (  !$operation_name
@@ -146,10 +143,10 @@ sub build_execution_context {
 
     unless ($operation) {
         if ($operation_name) {
-            die GraphQLError(qq`Unknown operation named "$operation_name".`);
+            die qq`Unknown operation named "$operation_name".\n`;
         }
         else {
-            die GraphQLError(qq`Must provide an operation.`);
+            die "Must provide an operation.\n";
         }
     }
 
@@ -209,7 +206,7 @@ sub get_operation_root_type {
         }
         return $mutation_type;
     }
-    elsif ($operation->{operation} eq 'subcription') {
+    elsif ($operation->{operation} eq 'subscription') {
         my $subscription_type = $schema->get_subscription_type;
         unless ($subscription_type) {
             die GraphQLError(
@@ -229,9 +226,27 @@ sub get_operation_root_type {
 
 # Implements the "Evaluating selection sets" section of the spec
 # for "write" mode.
+# NOTE: Not needed
 sub execute_fields_serially {
     my ($exe_context, $parent_type, $source_value, $path, $fields) = @_;
-    die;
+
+    return reduce {
+        my $field_nodes = $fields->{ $b };
+        my $field_path = add_path($path, $b);
+        my $result = resolve_field(
+            $exe_context,
+            $parent_type,
+            $source_value,
+            $field_nodes,
+            $field_path
+        );
+        print 'efs '; p $result;
+
+        return $a if not defined($result);
+
+        $a->{ $b } = $result;
+        $a;
+    } {}, keys %$fields;
 }
 
 # Implements the "Evaluating selection sets" section of the spec
@@ -250,9 +265,12 @@ sub execute_fields {
             $field_nodes,
             $field_path
         );
-        # print 'ef '; p $result;
+        print "ef $b "; p $result;
 
-        return $a unless defined($result);
+        if (!defined $result) {
+            p $a;
+        }
+        return $a if not defined($result);
 
         $a->{ $b } = $result;
         $a;
@@ -435,7 +453,7 @@ sub resolve_field {
 
     # Get the resolve function, regardless of if its result if normal
     # or abrupt (error).
-    my $result = resolve_or_error(
+    my $result = resolve_field_value_or_error(
         $exe_context,
         $field_def,
         $field_node,
@@ -457,7 +475,7 @@ sub resolve_field {
 
 # Isolates the "ReturnOrAbrupt" behavior to not de-opt the `resolveField`
 # function. Returns the result of resolveFn or the abrupt-return Error object.
-sub resolve_or_error {
+sub resolve_field_value_or_error {
     my ($exe_context, $field_def, $field_node,
         $resolve_fn, $source, $context, $info) = @_;
 
@@ -470,11 +488,11 @@ sub resolve_or_error {
             $field_node,
             $exe_context->{variable_values}
         );
-
-        print 'roe args '; p $args;
+        # print 'roe args '; p $args;
 
         $resolve_fn->($source, $args, $context, $info);
     };
+    print 'res '; p $res;
 
     if (my $e = $@) {
         warn $e;
@@ -517,7 +535,7 @@ sub complete_value_catching_error {
     };
 
     if (my $e = $@) {
-        print 'eval of cvwle '; p $e;
+        # print 'eval of cvwle '; p $e;
         # If `complete_value_with_located_error` returned abruptly (threw an error),
         # log the error and return null.
         push @{ $exe_context->{errors} }, $e;
@@ -544,7 +562,7 @@ sub complete_value_with_located_error {
     };
 
     if (my $e = $@) {
-        print 'eval of cv '; p $e;
+        # print 'eval of cv '; p $e;
         die located_error($e, $field_nodes, response_path_as_array($path));
     };
 
@@ -573,9 +591,9 @@ sub complete_value_with_located_error {
 sub complete_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
-    say '-';
-    print 'cv '; p $result;
-    print 'cv rt '; p $return_type;
+    # say '-';
+    # print 'cv '; p $result;
+    # print 'cv rt '; p $return_type;
 
     # If result is an Error, throw a located error.
     # TODO
@@ -604,7 +622,7 @@ sub complete_value {
 
     # If result value is null-ish (null, undefined, or NaN) then return null.
     # TODO
-    if (!$result) {
+    unless (defined($result)) {
         say 'nullish';
         return; # null
     }
@@ -631,7 +649,9 @@ sub complete_value {
 
     # If field type is an abstract type, Interface or Union, determine the
     # runtime Object type and complete for that type.
+    # print 'before abstract '; p $return_type;
     if (is_abstract_type($return_type)) {
+        say 'abstract';
         return complete_abstract_value(
             $exe_context,
             $return_type,
@@ -644,6 +664,7 @@ sub complete_value {
 
     # If field type is Object, execute and complete all sub-selections.
     if ($return_type->isa('GraphQL::Type::Object')) {
+        say 'object';
         return complete_object_value(
             $exe_context,
             $return_type,
@@ -662,7 +683,6 @@ sub complete_value {
 sub complete_list_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
-print 'result '; p $result;
     die "Expected Iterable, but did not find one for field $info->{parent_type}{name}.$info->{field_name}."
         if ref($result) ne 'ARRAY';
 
@@ -671,6 +691,8 @@ print 'result '; p $result;
 
     my $index = 0;
     for my $item (@$result) {
+        # print 'list item '; p $item;
+        # print 'list item type '; p $item_type;
         # No need to modify the info object containing the path,
         # since from here on it is not ever accessed by resolver functions.
         my $field_path = add_path($path, $index++);
@@ -700,9 +722,13 @@ sub complete_leaf_value {
 
     my $serialized_result = $return_type->serialize($result);
     # print 'clv sr '; p $serialized_result;
-    unless ($serialized_result) {
-        die qq`Expected a value of type "${ stringify_type($return_type) }" but `
-          . qq`received: ${ stringify_type($result) }`;
+    # TODO: check condition
+    unless (defined($serialized_result)) {
+        # TODO: return Error
+        die {
+            message => qq`Expected a value of type "${ stringify_type($return_type) }" but `
+                . qq`received: ${ stringify_type($result) }`,
+        };
     }
 
     return $serialized_result;
@@ -713,9 +739,11 @@ sub complete_leaf_value {
 sub complete_abstract_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
-    my $runtime_type = $return_type->{resolve_type}
-        ? $return_type->resolve_type($result, $exe_context->{context_value}, $info)
+    # print 'abs rettyp '; p $return_type;
+    my $runtime_type = $return_type->resolve_type
+        ? $return_type->resolve_type->($result, $exe_context->{context_value}, $info)
         : default_resolve_type_fn($result, $exe_context->{context_value}, $info, $return_type);
+    # print 'abs runtyp '; p $runtime_type;
 
     return complete_object_value(
         $exe_context,
@@ -738,9 +766,12 @@ sub ensure_valid_runtime_type {
     my ($runtime_type_or_name, $exe_context, $return_type,
         $field_nodes, $info, $result) = @_;
 
+    # say "\n";
+    # print 'rton '; p $runtime_type_or_name;
     my $runtime_type = !ref($runtime_type_or_name)
         ? $exe_context->{schema}->get_type($runtime_type_or_name)
         : $runtime_type_or_name;
+    # print 'evrt '; p $runtime_type;
 
     unless ($runtime_type->isa('GraphQL::Type::Object')) {
         die GraphQLError(
@@ -771,7 +802,8 @@ sub complete_object_value {
     # than continuing execution.
     if ($return_type->is_type_of) {
         my $is_type_of =
-            $return_type->is_type_of($result, $exe_context->{context_value}, $info);
+            $return_type->is_type_of->($result, $exe_context->{context_value}, $info);
+        # print 'cov itf '; p $is_type_of;
 
         if (!$is_type_of) {
             die invalid_return_type_error($return_type, $result, $field_nodes);
@@ -791,7 +823,7 @@ sub complete_object_value {
 sub invalid_return_type_error {
     my ($return_type, $result, $field_nodes) = @_;
     return GraphQLError(
-        qq`Expected value of tpe "$return_type->{name}" but got: ${ stringify_type($result) }.`,
+        qq`Expected value of type "$return_type->{name}" but got: ${ stringify_type($result) }.`,
         $field_nodes
     );
 }
@@ -826,10 +858,11 @@ sub default_resolve_type_fn {
     my ($value, $context, $info, $abstract_type) = @_;
 
     my $possible_types = $info->{schema}->get_possible_types($abstract_type);
+    # print 'pos typ '; p $possible_types;
 
     for my $type (@$possible_types) {
         if ($type->is_type_of) {
-            my $is_type_of_result = $type->is_type_of($value, $context, $info);
+            my $is_type_of_result = $type->is_type_of->($value, $context, $info);
             return $type if $is_type_of_result;
         }
     }
@@ -843,9 +876,11 @@ sub default_resolve_type_fn {
 # of calling that function while passing along args and context.
 sub default_field_resolver {
     my ($source, $args, $context, $info) = @_;
+    # say ' >>> default field resolver >>> ';
 
-    if (ref($source) eq 'HASH' || ref($source) eq 'CODE') {
+    if (reftype($source) eq 'HASH' || ref($source) eq 'CODE') {
         my $property = $source->{ $info->{field_name} };
+        # print 'prop '; p $property;
 
         if (ref($property) eq 'CODE') {
             $property = $source->{ $info->{field_name} }->($args, $context, $info);

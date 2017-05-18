@@ -82,7 +82,9 @@ sub key_map {
 
 sub is_invalid {
     my $value = shift;
-    return !defined($value) || $value ne $value;
+    warn 'SHOULD NOT BE USED!';
+    return 0;
+    # return !defined($value) || $value ne $value;
 }
 
 # Given a JavaScript value and a GraphQL type, determine if the value will be
@@ -153,15 +155,16 @@ sub is_valid_js_value {
         my $parse_result = $type->parse_value($value);
         unless ($parse_result) {
             return [
-                qq`Expected type "$type->{name}", found ${ stringify($value) }.`
+                qq`Expected type "$type->{name}", found $value.`
             ];
         }
     };
 
     if (my $e = $@) {
+        # TODO: e is not object
+        p $e;
         return [
-            qq`Expected type "$type->{name}", found ${ stringify($value) }: `
-            . $e->{message}
+            qq`Expected type "$type->{name}", found $value: $e->{message}`
         ];
     };
 
@@ -514,7 +517,8 @@ sub value_from_ast {
         && !$type->isa('GraphQL::Type::Enum');
 
     my $parsed = $type->parse_literal($value_node);
-    unless ($parsed) {
+    # TODO: Boolean
+    unless (defined($parsed)) {
         # null or invalid values represent a failure to parse correctly,
         # in which case no value is returned.
         return;

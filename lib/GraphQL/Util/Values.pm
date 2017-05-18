@@ -78,7 +78,6 @@ sub get_variable_values {
             }
 
             my $coerced_value = coerce_value($var_type, $value);
-
             die "Should have reported error.\n" if is_invalid($coerced_value);
 
             $coerced_values{ $var_name } = $coerced_value;

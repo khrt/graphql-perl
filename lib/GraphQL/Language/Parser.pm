@@ -540,7 +540,7 @@ sub parse_value_literal {
             $lexer->advance;
             return {
                 kind => BOOLEAN,
-                value => $token->value eq 'true',
+                value => $token->value eq 'true' ? 1 : 0,
                 loc($lexer, $token),
             };
         }
@@ -842,7 +842,7 @@ sub parse_implements_interfaces {
     my $lexer = shift;
     my @types;
 
-    if ($lexer->token->value eq 'implements') {
+    if ($lexer->token->value && $lexer->token->value eq 'implements') {
         $lexer->advance;
         do {
             push @types, parse_named_type($lexer);

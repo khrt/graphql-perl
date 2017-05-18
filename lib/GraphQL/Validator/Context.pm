@@ -5,27 +5,27 @@ use warnings;
 
 use Carp qw/longmess/;
 use DDP {
-    indent => 2,
-    max_depth => 5,
-    index => 0,
-    class => {
-        internals => 0,
-        show_methods => 'none',
-    },
-    filters => {
-        'GraphQL::Language::Token' => sub { shift->desc },
-        'GraphQL::Language::Source' => sub { shift->name },
+    # indent => 2,
+    # max_depth => 5,
+    # index => 0,
+    # class => {
+    #     internals => 0,
+    #     show_methods => 'none',
+    # },
+    # filters => {
+    #     'GraphQL::Language::Token' => sub { shift->desc },
+    #     'GraphQL::Language::Source' => sub { shift->name },
 
-        'GraphQL::Type::Enum'        => sub { shift->to_string },
-        'GraphQL::Type::InputObject' => sub { shift->to_string },
-        'GraphQL::Type::Interface'   => sub { shift->to_string },
-        'GraphQL::Type::List'        => sub { shift->to_string },
-        'GraphQL::Type::NonNull'     => sub { shift->to_string },
-        'GraphQL::Type::Object'      => sub { shift->to_string },
-        'GraphQL::Type::Scalar'      => sub { shift->to_string },
-        'GraphQL::Type::Union'       => sub { shift->to_string },
-    },
-    caller_info => 0,
+    #     'GraphQL::Type::Enum'        => sub { shift->to_string },
+    #     'GraphQL::Type::InputObject' => sub { shift->to_string },
+    #     'GraphQL::Type::Interface'   => sub { shift->to_string },
+    #     'GraphQL::Type::List'        => sub { shift->to_string },
+    #     'GraphQL::Type::NonNull'     => sub { shift->to_string },
+    #     'GraphQL::Type::Object'      => sub { shift->to_string },
+    #     'GraphQL::Type::Scalar'      => sub { shift->to_string },
+    #     'GraphQL::Type::Union'       => sub { shift->to_string },
+    # },
+    # caller_info => 0,
 };
 use List::Util qw/reduce/;
 

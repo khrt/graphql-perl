@@ -40,7 +40,7 @@ sub get_value {
 sub serialize {
     my ($self, $value) = @_;
     my $enum_value = $self->_get_value_lookup->{$value};
-    return $enum_value ? $enum_value->name : undef; # null
+    return $enum_value ? $enum_value->{name} : undef; # null
 }
 
 sub parse_value {
@@ -48,7 +48,7 @@ sub parse_value {
     if (!ref($value)) { # === 'string'
         my $enum_value = $self->_get_name_lookup->{$value};
         if ($enum_value) {
-            return $enum_value->value;
+            return $enum_value->{value};
         }
     }
     return;
@@ -68,7 +68,7 @@ sub parse_literal {
 sub _get_value_lookup {
     my $self = shift;
     if (!$self->{_value_lookup}) {
-        my %lookup = map { $_->value => $_ } @{ $self->get_values };
+        my %lookup = map { $_->{value} => $_ } @{ $self->get_values };
         $self->{_value_lookup} = \%lookup;
     }
     return $self->{_value_lookup};
