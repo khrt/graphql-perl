@@ -8,8 +8,7 @@ use Test::More;
 use Test::Deep;
 use JSON qw/encode_json/;
 
-use GraphQL qw/graphql/;
-use GraphQL::Type qw/:all/;
+use GraphQL qw/graphql :types/;
 
 {
     package Dog;

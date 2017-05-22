@@ -43,7 +43,6 @@ our @EXPORT_OK = (qw/
     GraphQLSkipDirective
     GraphQLDeprecatedDirective
 /);
-    #GraphQLField
 
 our %EXPORT_TAGS = (
     all => [qw/

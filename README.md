@@ -6,15 +6,35 @@ GraphQL - A Perl implementation of [GraphQL](http://graphql.org/).
 
     use GraphQL qw/:types graphql/;
 
-    ...
+    my $schema = GraphQLSchema(
+        query => $Query,
+        mutation => $Mutation;
+    );
+
+    my $result = graphql($schema, $query);
 
 # DESCRIPTION
 
 # EXPORTS
 
-    graphql
+A GraphQL module doesn't import anything by default and provides following items
+for importing by request.
 
-    :types
+## graphql
+
+A function to parse, validate, and execute GraphQL queries. It accepts following
+parameters:
+
+Usually called like this:
+
+    graphql(
+        $schema,
+        '{ human(id: "1000") { name } }'
+    );
+
+## :types
+
+Exports base GraphQL types. See ["TYPES"](#types) section.
 
 # TYPES
 
@@ -27,27 +47,13 @@ GraphQL - A Perl implementation of [GraphQL](http://graphql.org/).
 Object represents a list of named fields, each of which yield a value of a
 specific type.
 
-- name
-- fields
+Possible parameters of an object:
 
-    ["Fields"](#fields)
-
-- description
-- interfaces
-- is\_type\_of
-
-### Fields
-
-- type
-- args
-
-    ["Arguments"](#arguments)
-
-- resolve
-- description
-- deprecation\_reason
-
-### Arguments
+- name;
+- fields - see ["Fields"](#fields);
+- description - optional;
+- interfaces - optional;
+- is\_type\_of - optional;
 
     GraphQLObjectType(
         name => '',
@@ -55,6 +61,47 @@ specific type.
             ...
         },
     );
+
+### Fields
+
+List of named fields.
+
+Possible argument of a field:
+
+- type;
+- args - see ["Arguments"](#arguments);
+- resolve - must a code ref if passed;
+- description - optional;
+- deprecation\_reason - optional;
+
+    {
+        args => {
+            ...
+        },
+        type => GraphQLString,
+        resolve => sub {
+            my ($obj, $args) = @_;
+            ...
+        },
+    }
+
+### Arguments
+
+Arguments are applicable to fields and should defined like a HASH ref of
+arguments of HASH ref with type.
+
+Possible parameters of an argument:
+
+- type;
+- description - optional;
+- default\_value - optional;
+
+    {
+        arg_name => {
+            type => GraphQL,
+            description => 'Argument description',
+        },
+    }
 
 ## Scalar Types
 
@@ -119,19 +166,20 @@ Like many type systems, GraphQL supports interfaces. An Interface is an abstract
 type that includes a certain set of fields that a type must include to implement
 the interface.
 
-- name
-- fields
-
-    ["Fields"](#fields)
-
-- description
-- resolve\_type
+- name;
+- fields - see ["Fields"](#fields);
+- description - optional;
+- resolve\_type - must be a CODE ref, optional;
 
     GraphQLInterfaceType(
         name => 'Interface',
         fields => {
             ...
         },
+        resolve_type => {
+            my ($obj, $context, $info) = @_;
+            ...
+        }
     );
 
 [GraphQL::Language::Interface](https://metacpan.org/pod/GraphQL::Language::Interface)
@@ -148,7 +196,7 @@ common fields between the types.
 
 [GraphQL::Language::Union](https://metacpan.org/pod/GraphQL::Language::Union)
 
-# SCHEMA
+## Schema
 
 Every GraphQL service has a _query_ type and may or may not have a _mutation_ type.
 These types are the same as a regular object type, but they are special because
@@ -160,10 +208,6 @@ they define the entry point of every GraphQL query.
     );
 
 [GraphQL::Type::Schema](https://metacpan.org/pod/GraphQL::Type::Schema).
-
-# VALIDATION
-
-# EXECUTION
 
 # EXAMPLES
 

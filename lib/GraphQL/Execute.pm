@@ -182,9 +182,10 @@ sub execute_operation {
     # print 'eo fields '; p $fields;
 
     my $path;
-    if ($operation->{operation} eq 'mutation') {
-        return execute_fields_serially($exe_context, $type, $root_value, $path, $fields);
-    }
+    # NOTE: not needed
+    # if ($operation->{operation} eq 'mutation') {
+    #     return execute_fields_serially($exe_context, $type, $root_value, $path, $fields);
+    # }
 
     return execute_fields($exe_context, $type, $root_value, $path, $fields);
 }
@@ -253,7 +254,6 @@ sub execute_fields_serially {
 # for "read" mode.
 sub execute_fields {
     my ($exe_context, $parent_type, $source_value, $path, $fields) = @_;
-    # print 'ef keys '; p [keys %$fields];
 
     return reduce {
         my $field_nodes = $fields->{ $b };
@@ -265,10 +265,10 @@ sub execute_fields {
             $field_nodes,
             $field_path
         );
-        print "ef $b "; p $result;
+        print 'ef ' . $b . ' '; p $result;
 
         if (!defined $result) {
-            p $a;
+            print 'not defined '; p $a;
         }
         return $a if not defined($result);
 
@@ -292,20 +292,23 @@ sub collect_fields {
 
         if ($selection->{kind} eq Kind->FIELD) {
             unless (should_include_node($exe_context, $selection->{directives})) {
-                next; # TODO
+                next;
             }
+
             my $name = get_field_entry_key($selection);
             if (!$fields->{ $name }) {
                 $fields->{ $name } = [];
             }
+
             push @{ $fields->{ $name } }, $selection;
         }
         elsif ($selection->{kind} eq Kind->INLINE_FRAGMENT) {
-            unless (should_include_node($exe_context, $selection->{directives})
-                || does_fragment_condition_match($exe_context, $selection, $runtime_type))
+            if (   !should_include_node($exe_context, $selection->{directives})
+                || !does_fragment_condition_match($exe_context, $selection, $runtime_type))
             {
-                next; # TODO
+                next;
             }
+
             collect_fields(
                 $exe_context,
                 $runtime_type,
@@ -319,15 +322,16 @@ sub collect_fields {
             if ($visited_fragment_names->{ $frag_name }
                 || !should_include_node($exe_context, $selection->{directives}))
             {
-                next; # TODO
+                next;
             }
 
             $visited_fragment_names->{ $frag_name } = 1;
 
             my $fragment = $exe_context->{fragments}{ $frag_name };
             if (!$fragment
-                || !does_fragment_condition_match($exe_context, $fragment, $runtime_type)) {
-                next; # TODO
+                || !does_fragment_condition_match($exe_context, $fragment, $runtime_type))
+            {
+                next;    # TODO
             }
 
             collect_fields(
@@ -354,16 +358,12 @@ sub should_include_node {
     );
 
     if ($skip_node) {
-        # TODO
         my $values = get_argument_values(
             GraphQLSkipDirective,
             $skip_node,
             $exe_context->{variable_values}
         );
-
-        if ($values->{skip_if}) { # === true
-            return; # false
-        }
+        return if $values->{if};
     }
 
     my $include_node = $directives && find(
@@ -372,16 +372,12 @@ sub should_include_node {
     );
 
     if ($include_node) {
-        # TODO
         my $values = get_argument_values(
             GraphQLIncludeDirective,
             $include_node,
             $exe_context->{variable_values}
         );
-
-        if (!$values->{include_if}) { # === false
-            return; # false
-        }
+        return if !$values->{if};
     }
 
     return 1;
@@ -492,11 +488,11 @@ sub resolve_field_value_or_error {
 
         $resolve_fn->($source, $args, $context, $info);
     };
-    print 'res '; p $res;
+    # print 'res '; p $res;
 
     if (my $e = $@) {
-        warn $e;
-        # TODO Wrap error to GraphQLError if not's not it
+        print 'eval of rfvor '; warn $e;
+        # TODO Wrap error to Error if it's not
         return $e;
     };
 
@@ -535,7 +531,7 @@ sub complete_value_catching_error {
     };
 
     if (my $e = $@) {
-        # print 'eval of cvwle '; p $e;
+        print 'eval of cvwle '; p $e;
         # If `complete_value_with_located_error` returned abruptly (threw an error),
         # log the error and return null.
         push @{ $exe_context->{errors} }, $e;
@@ -562,7 +558,7 @@ sub complete_value_with_located_error {
     };
 
     if (my $e = $@) {
-        # print 'eval of cv '; p $e;
+        print 'eval of cv '; p $e;
         die located_error($e, $field_nodes, response_path_as_array($path));
     };
 
@@ -591,8 +587,8 @@ sub complete_value_with_located_error {
 sub complete_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
-    # say '-';
-    # print 'cv '; p $result;
+    say '-';
+    print 'cv '; p $result;
     # print 'cv rt '; p $return_type;
 
     # If result is an Error, throw a located error.
@@ -623,13 +619,13 @@ sub complete_value {
     # If result value is null-ish (null, undefined, or NaN) then return null.
     # TODO
     unless (defined($result)) {
-        say 'nullish';
+        # say 'nullish';
         return; # null
     }
 
     # If field type is List, complete each item in the list with the inner type
     if ($return_type->isa('GraphQL::Type::List')) {
-        say 'list';
+        # say 'list';
         return complete_list_value(
             $exe_context,
             $return_type,
@@ -643,7 +639,7 @@ sub complete_value {
     # If field type is a leaf type, Scalar or Enum, serialize to a valid value,
     # returning null if serialization is not possible.
     if (is_leaf_type($return_type)) {
-        say 'leaf';
+        # say 'leaf';
         return complete_leaf_value($return_type, $result);
     }
 
@@ -651,7 +647,7 @@ sub complete_value {
     # runtime Object type and complete for that type.
     # print 'before abstract '; p $return_type;
     if (is_abstract_type($return_type)) {
-        say 'abstract';
+        # say 'abstract';
         return complete_abstract_value(
             $exe_context,
             $return_type,
@@ -664,7 +660,7 @@ sub complete_value {
 
     # If field type is Object, execute and complete all sub-selections.
     if ($return_type->isa('GraphQL::Type::Object')) {
-        say 'object';
+        # say 'object';
         return complete_object_value(
             $exe_context,
             $return_type,
@@ -879,7 +875,9 @@ sub default_field_resolver {
     # say ' >>> default field resolver >>> ';
 
     if (reftype($source) eq 'HASH' || ref($source) eq 'CODE') {
-        my $property = $source->{ $info->{field_name} };
+        my $property = blessed($source) && $source->can($info->{field_name})
+            ? $source->${ \$info->{field_name} }
+            : $source->{ $info->{field_name} };
         # print 'prop '; p $property;
 
         if (ref($property) eq 'CODE') {

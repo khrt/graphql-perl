@@ -5,11 +5,66 @@ use warnings;
 
 use Exporter qw/import/;
 
-our @EXPORT_OK = qw(graphql);
+our @EXPORT_OK = (qw/
+    graphql
 
+    GraphQLSchema
+
+    GraphQLDirective
+
+    GraphQLScalarType
+    GraphQLObjectType
+    GraphQLInterfaceType
+    GraphQLUnionType
+    GraphQLEnumType
+    GraphQLInputObjectType
+
+    GraphQLList
+    GraphQLNonNull
+
+    GraphQLBoolean
+    GraphQLFloat
+    GraphQLID
+    GraphQLInt
+    GraphQLString
+
+    GraphQLIncludeDirective
+    GraphQLSkipDirective
+    GraphQLDeprecatedDirective
+/);
+
+our %EXPORT_TAGS = (
+    types => [qw/
+        GraphQLSchema
+
+        GraphQLDirective
+
+        GraphQLScalarType
+        GraphQLObjectType
+        GraphQLInterfaceType
+        GraphQLUnionType
+        GraphQLEnumType
+        GraphQLInputObjectType
+
+        GraphQLList
+        GraphQLNonNull
+
+        GraphQLBoolean
+        GraphQLFloat
+        GraphQLID
+        GraphQLInt
+        GraphQLString
+
+        GraphQLIncludeDirective
+        GraphQLSkipDirective
+        GraphQLDeprecatedDirective
+    /],
+);
+
+use GraphQL::Execute qw/execute/;
 use GraphQL::Language::Parser qw/parse/;
 use GraphQL::Language::Source;
-use GraphQL::Execute qw/execute/;
+use GraphQL::Type qw/:all/;
 use GraphQL::Validator qw/validate/;
 
 our $VERSION = 0.01;
@@ -52,15 +107,36 @@ GraphQL - A Perl implementation of L<GraphQL|http://graphql.org/>.
 
     use GraphQL qw/:types graphql/;
 
-    ...
+    my $schema = GraphQLSchema(
+        query => $Query,
+        mutation => $Mutation;
+    );
+
+    my $result = graphql($schema, $query);
+
 
 =head1 DESCRIPTION
 
 =head1 EXPORTS
 
-    graphql
+A GraphQL module doesn't import anything by default and provides following items
+for importing by request.
 
-    :types
+=head2 graphql
+
+A function to parse, validate, and execute GraphQL queries. It accepts following
+parameters:
+
+Usually called like this:
+
+    graphql(
+        $schema,
+        '{ human(id: "1000") { name } }'
+    );
+
+=head2 :types
+
+Exports base GraphQL types. See L</TYPES> section.
 
 =head1 TYPES
 
@@ -73,45 +149,21 @@ L<GraphQL::Language::Object>
 Object represents a list of named fields, each of which yield a value of a
 specific type.
 
-=over
-
-=item name
-
-=item fields
-
-L</Fields>
-
-=item description
-
-=item interfaces
-
-=item is_type_of
-
-=back
-
-
-=head3 Fields
+Possible parameters of an object:
 
 =over
 
-=item type
+=item * name;
 
-=item args
+=item * fields - see L</Fields>;
 
-L</Arguments>
+=item * description - optional;
 
-=item resolve
+=item * interfaces - optional;
 
-=item description
-
-=item deprecation_reason
+=item * is_type_of - optional;
 
 =back
-
-
-=head3 Arguments
-
-
 
     GraphQLObjectType(
         name => '',
@@ -119,6 +171,61 @@ L</Arguments>
             ...
         },
     );
+
+=head3 Fields
+
+List of named fields.
+
+Possible argument of a field:
+
+=over
+
+=item * type;
+
+=item * args - see L</Arguments>;
+
+=item * resolve - must a code ref if passed;
+
+=item * description - optional;
+
+=item * deprecation_reason - optional;
+
+=back
+
+    {
+        args => {
+            ...
+        },
+        type => GraphQLString,
+        resolve => sub {
+            my ($obj, $args) = @_;
+            ...
+        },
+    }
+
+=head3 Arguments
+
+Arguments are applicable to fields and should defined like a HASH ref of
+arguments of HASH ref with type.
+
+Possible parameters of an argument:
+
+=over
+
+=item * type;
+
+=item * description - optional;
+
+=item * default_value - optional;
+
+=back
+
+    {
+        arg_name => {
+            type => GraphQL,
+            description => 'Argument description',
+        },
+    }
 
 =head2 Scalar Types
 
@@ -193,15 +300,13 @@ the interface.
 
 =over
 
-=item name
+=item * name;
 
-=item fields
+=item * fields - see L</Fields>;
 
-L</Fields>
+=item * description - optional;
 
-=item description
-
-=item resolve_type
+=item * resolve_type - must be a CODE ref, optional;
 
 =back
 
@@ -210,6 +315,10 @@ L</Fields>
         fields => {
             ...
         },
+        resolve_type => {
+            my ($obj, $context, $info) = @_;
+            ...
+        }
     );
 
 L<GraphQL::Language::Interface>
@@ -226,7 +335,7 @@ common fields between the types.
 
 L<GraphQL::Language::Union>
 
-=head1 SCHEMA
+=head2 Schema
 
 Every GraphQL service has a I<query> type and may or may not have a I<mutation> type.
 These types are the same as a regular object type, but they are special because
@@ -238,10 +347,6 @@ they define the entry point of every GraphQL query.
     );
 
 L<GraphQL::Type::Schema>.
-
-=head1 VALIDATION
-
-=head1 EXECUTION
 
 =head1 EXAMPLES
 

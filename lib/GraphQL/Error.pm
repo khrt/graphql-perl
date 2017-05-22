@@ -16,26 +16,6 @@ our @EXPORT_OK = (qw/
     located_error
 /);
 
-# sub new {
-#     my ($class, %args) = @_;
-
-#     my $self = bless {
-#         message => '',
-#         nodes => [],
-#         source => [],
-#         positions => [],
-#         path => [],
-#         original_error => [],
-#     }, $class;
-
-#     return $self;
-# }
-
-# sub name {}
-# sub stack {}
-# sub message {}
-# sub original_error {}
-
 sub format_error {
     my $error = shift;
     die "Received null or undefined error.\n" unless $error;
