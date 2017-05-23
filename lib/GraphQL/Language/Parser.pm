@@ -5,7 +5,7 @@ use warnings;
 
 use feature 'say';
 
-use GraphQL::Error::SyntaxError qw/syntax_error/;
+use GraphQL::Error qw/syntax_error/;
 use GraphQL::Language::Source;
 use GraphQL::Language::Token;
 use GraphQL::Language::Lexer;

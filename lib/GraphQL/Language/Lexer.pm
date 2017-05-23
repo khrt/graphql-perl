@@ -8,7 +8,7 @@ use feature 'say';
 use DDP;
 use Carp 'longmess';
 
-use GraphQL::Error::SyntaxError qw/syntax_error/;
+use GraphQL::Error qw/syntax_error/;
 use GraphQL::Language::Token qw/:kinds/;
 
 sub char_code_at {

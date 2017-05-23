@@ -14,17 +14,8 @@ our @EXPORT_OK = (qw/
 
     format_error
     located_error
+    syntax_error
 /);
-
-sub format_error {
-    my $error = shift;
-    die "Received null or undefined error.\n" unless $error;
-    return {
-        message => $error->{message},
-        locations => $error->{locations},
-        path => $error->{path},
-    };
-}
 
 sub GraphQLError {
     my ($message, $nodes, $source, $positions, $path, $original_error) = @_;
@@ -50,7 +41,7 @@ sub GraphQLError {
         $_locations = [map { get_location($_source, $_) } @$_positions];
     }
 
-    return {
+    return bless {
         message => $message,
         locations => $_locations,
         path => $path,
@@ -58,6 +49,16 @@ sub GraphQLError {
         source => $_source,
         positions => $_positions,
         original_error => $original_error,
+    }, __PACKAGE__;
+}
+
+sub format_error {
+    my $error = shift;
+    die "Received null or undefined error.\n" unless $error;
+    return {
+        message => $error->{message},
+        locations => $error->{locations},
+        path => $error->{path},
     };
 }
 
@@ -67,7 +68,7 @@ sub GraphQLError {
 sub located_error {
     my ($original_error, $nodes, $path) = @_;
 
-
+    # warn longmess 'located error';
 
     # Note: this uses a brand-check to support GraphQL errors originating from
     # other contexts.
@@ -88,6 +89,44 @@ sub located_error {
         $path,
         $original_error
     );
+}
+
+sub syntax_error {
+    my ($source, $position, $description) = @_;
+    my $location = get_location($source, $position);
+
+    my $error = sprintf "Syntax Error %s (%d:%d) %s\n\n%s",
+        $source->name, $location->{line}, $location->{column}, $description,
+        _highlight_source_at_location($source, $location);
+
+    return $error;
+}
+
+sub _highlight_source_at_location {
+    my ($source, $location) = @_;
+
+    my $line = $location->{line};
+
+    my $prev_line_num = $line - 1;
+    my $line_num = $line;
+    my $next_line_num = $line + 1;
+
+    my $pad_len = length($next_line_num);
+
+    my @lines = split /\n/, $source->body, -1;
+
+    return
+        ($line >= 2
+            ? _lpad($pad_len, $prev_line_num) . ': ' . $lines[$line - 2] . "\n" : '')
+        . _lpad($pad_len, $line_num) . ': ' . $lines[$line - 1] . "\n"
+        . (join ' ', ('') x (2+$pad_len+$location->{column})) . "^\n"
+        . ($line < scalar(@lines)
+            ? _lpad($pad_len, $next_line_num) . ': ' . $lines[$line] . "\n" : '');
+}
+
+sub _lpad {
+    my ($len, $str) = @_;
+    return (join ' ', ('') x ($len-length($str)+1)) . $str;
 }
 
 1;

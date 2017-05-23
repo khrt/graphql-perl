@@ -115,7 +115,7 @@ sub get_argument_values {
         # print 'node '; p $argument_node;
 
         if (!$argument_node) {
-            if (!is_invalid($default_value)) {
+            if (defined($default_value)) {
                 $coerced_values{ $name } = $default_value;
             }
             elsif ($arg_type->isa('GraphQL::Type::NonNull')) {

@@ -117,32 +117,15 @@ GraphQL - A Perl implementation of L<GraphQL|http://graphql.org/>.
 
 =head1 DESCRIPTION
 
-=head1 EXPORTS
-
-A GraphQL module doesn't import anything by default and provides following items
-for importing by request.
-
-=head2 graphql
-
-A function to parse, validate, and execute GraphQL queries. It accepts following
-parameters:
-
-Usually called like this:
-
-    graphql(
-        $schema,
-        '{ human(id: "1000") { name } }'
-    );
-
-=head2 :types
-
-Exports base GraphQL types. See L</TYPES> section.
+graphql-perl is a port of a L<reference GraphQL implementation|https://github.com/graphql/graphql-js>
+implements GraphQL types, parser, validation and execution need to build
+GraphQL schema and execute GraphQL queries.
 
 =head1 TYPES
 
-=head2 Object Types and Fields
+To import all available GraphQL types use C<:types> tag from L<GraphQL> class.
 
-L<GraphQL::Language::Object>
+=head2 Object Types and Fields
 
 =head2 Object
 
@@ -164,6 +147,7 @@ Possible parameters of an object:
 =item * is_type_of - optional;
 
 =back
+
 
     GraphQLObjectType(
         name => '',
@@ -191,6 +175,7 @@ Possible argument of a field:
 =item * deprecation_reason - optional;
 
 =back
+
 
     {
         args => {
@@ -220,12 +205,15 @@ Possible parameters of an argument:
 
 =back
 
+
     {
         arg_name => {
             type => GraphQL,
             description => 'Argument description',
         },
     }
+
+L<GraphQL::Language::Object>
 
 =head2 Scalar Types
 
@@ -357,6 +345,8 @@ See I<examples> directory.
 L<https://github.com/khrt/graphql-perl|https://github.com/khrt/graphql-perl>
 
 =head1 ACKNOWLEDGEMENTS
+
+Actually a port of a L<reference GraphQL implementation|https://github.com/graphql/graphql-js>.
 
 =head1 AUTHOR
 

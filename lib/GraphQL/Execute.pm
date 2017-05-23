@@ -265,12 +265,13 @@ sub execute_fields {
             $field_nodes,
             $field_path
         );
-        print 'ef ' . $b . ' '; p $result;
+        # print 'ef ' . $b . ' '; p $result;
 
         if (!defined $result) {
-            print 'not defined '; p $a;
+            # print 'not defined '; p $a;
+            warn "$b NOT DEFINED";
         }
-        return $a if not defined($result);
+        # return $a if not defined($result); # XXX
 
         $a->{ $b } = $result;
         $a;
@@ -421,7 +422,6 @@ sub resolve_field {
     my $field_name = $field_node->{name}{value};
 
     my $field_def = get_field_def($exe_context->{schema}, $parent_type, $field_name);
-    # print 'rf fd '; p $field_def;
     return unless $field_def;
 
     my $return_type = $field_def->{type};
@@ -491,9 +491,8 @@ sub resolve_field_value_or_error {
     # print 'res '; p $res;
 
     if (my $e = $@) {
-        print 'eval of rfvor '; warn $e;
-        # TODO Wrap error to Error if it's not
-        return $e;
+        # print 'eval of rfvor '; warn $e;
+        return GraphQLError($e, [$field_node]);
     };
 
     return $res;
@@ -531,7 +530,7 @@ sub complete_value_catching_error {
     };
 
     if (my $e = $@) {
-        print 'eval of cvwle '; p $e;
+        # print 'eval of cvwle '; p $e;
         # If `complete_value_with_located_error` returned abruptly (threw an error),
         # log the error and return null.
         push @{ $exe_context->{errors} }, $e;
@@ -558,7 +557,7 @@ sub complete_value_with_located_error {
     };
 
     if (my $e = $@) {
-        print 'eval of cv '; p $e;
+        # print 'eval of cv '; p $e;
         die located_error($e, $field_nodes, response_path_as_array($path));
     };
 
@@ -587,12 +586,11 @@ sub complete_value_with_located_error {
 sub complete_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
-    say '-';
-    print 'cv '; p $result;
+    # say '-';
+    # print 'cv '; p $result;
     # print 'cv rt '; p $return_type;
 
     # If result is an Error, throw a located error.
-    # TODO
     if ($result && blessed($result) && $result->isa('GraphQL::Error')) {
         die $result;
     }
@@ -874,20 +872,17 @@ sub default_field_resolver {
     my ($source, $args, $context, $info) = @_;
     # say ' >>> default field resolver >>> ';
 
-    if (reftype($source) eq 'HASH' || ref($source) eq 'CODE') {
-        my $property = blessed($source) && $source->can($info->{field_name})
-            ? $source->${ \$info->{field_name} }
-            : $source->{ $info->{field_name} };
-        # print 'prop '; p $property;
+    return if reftype($source) ne 'HASH' && ref($source) ne 'CODE';
 
-        if (ref($property) eq 'CODE') {
-            $property = $source->{ $info->{field_name} }->($args, $context, $info);
-        }
+    my $property = blessed($source) && $source->can($info->{field_name})
+        ? $source->${ \$info->{field_name} }($args, $context, $info)
+        : $source->{ $info->{field_name} };
 
-        return $property;
+    if (ref($property) eq 'CODE') {
+        $property = $source->{ $info->{field_name} }->($args, $context, $info);
     }
 
-    return;
+    return $property;
 }
 
 # This method looks up the field on the given type defintion.

@@ -40,8 +40,6 @@ Exports base GraphQL types. See ["TYPES"](#types) section.
 
 ## Object Types and Fields
 
-[GraphQL::Language::Object](https://metacpan.org/pod/GraphQL::Language::Object)
-
 ## Object
 
 Object represents a list of named fields, each of which yield a value of a
@@ -102,6 +100,8 @@ Possible parameters of an argument:
             description => 'Argument description',
         },
     }
+
+[GraphQL::Language::Object](https://metacpan.org/pod/GraphQL::Language::Object)
 
 ## Scalar Types
 
@@ -218,6 +218,8 @@ See _examples_ directory.
 [https://github.com/khrt/graphql-perl](https://github.com/khrt/graphql-perl)
 
 # ACKNOWLEDGEMENTS
+
+Actually mostly a port of a [reference GraphQL implementation](https://github.com/graphql/graphql-js) written in JavaScript.
 
 # AUTHOR
 

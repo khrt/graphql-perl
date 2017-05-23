@@ -139,7 +139,7 @@ sub __InputValue {
                       'A GraphQL-formatted string representing the default value for this '
                     . 'input value.',
                 resolve => sub {
-                    my (undef, $input_val) = @_;
+                    my ($input_val) = @_;
                     # TODO
                     # is_invalid($input_val->{default_value})
                     #     ? undef
@@ -163,7 +163,7 @@ sub __Field {
             args => {
                 type => GraphQLNonNull(GraphQLList(GraphQLNonNull(__InputValue))),
                 resolve => sub {
-                    my (undef, $field) = @_;
+                    my ($field) = @_;
                     return $field->args || [];
                 },
             },
@@ -194,7 +194,7 @@ sub __Type {
             kind => {
                 type => GraphQLNonNull(__TypeKind),
                 resolve => sub {
-                    my (undef, $type) = @_;
+                    my ($type) = @_;
 
                     if ($type->isa('GraphQL::Type::Scalar')) {
                         return SCALAR;
@@ -232,7 +232,7 @@ sub __Type {
                     include_deprecated => { type => GraphQLBoolean, default_value => 0 }
                 },
                 resolve => sub {
-                    my (undef, $type, $args) = @_;
+                    my ($type, $args) = @_;
                     my $include_deprecated = $args->{include_deprecated};
 
                     if (   $type->isa(GraphQLObjectType)
@@ -255,7 +255,7 @@ sub __Type {
             interfaces => {
                 type => GraphQLList(GraphQLNonNull($__Type)),
                 resolve => sub {
-                    my (undef, $type) = @_;
+                    my ($type) = @_;
                     if ($type->isa(GraphQLObjectType)) {
                         return $type->get_interfaces;
                     }
@@ -266,8 +266,8 @@ sub __Type {
                 type => GraphQLList(GraphQLNonNull($__Type)),
                 resolve => sub {
                     # TODO parameter name xxx
-                    my (undef, $type, $args, $context, $xxx) = @_;
-                    my $schema = $xxx->{schema};
+                    my ($type, $args, $context, $info) = @_;
+                    my $schema = $info->{schema};
 
                     if (is_abstract_type($type)) {
                         return $schema->get_possible_types($type);
@@ -282,7 +282,7 @@ sub __Type {
                     include_deprecated => { type => GraphQLBoolean, default_value => 0 }
                 },
                 resolve => sub {
-                    my (undef, $type, $args) = @_;
+                    my ($type, $args) = @_;
                     my $include_deprecated = $args->{include_deprecated};
 
                     if ($type->isa(GraphQLEnumType)) {
@@ -302,7 +302,7 @@ sub __Type {
             input_fields => {
                 type => GraphQLList(GraphQLNonNull(__InputValue)),
                 resolve => sub {
-                    my (undef, $type) = @_;
+                    my ($type) = @_;
 
                     if ($type->isa(GraphQLInputObjectType)) {
                         my $field_map = $type->get_fields;
@@ -527,10 +527,8 @@ sub SchemaMetaFieldDef {
         description => 'Access the current type schema of this server.',
         args => [],
         resolve => sub {
-            my (undef, $source, $args, $context, $xxx) = @_;
-            # TODO: rename xxx
-            die;
-            $xxx->{schema};
+            my ($source, $args, $context, $info) = @_;
+            return $info->{schema};
         },
     }
 }
@@ -544,10 +542,8 @@ sub TypeMetaFieldDef {
             { name => 'name', type => GraphQLNonNull(GraphQLString) }
         ],
         resolve => sub {
-            my (undef, $source, $args, $context, $xxx) = @_;
-            # TODO: rename xxx
-            die;
-            $xxx->{schema}->get_type($args->{name});
+            my ($source, $args, $context, $info) = @_;
+            return $info->{schema}->get_type($args->{name});
         },
     }
 }
@@ -558,10 +554,8 @@ sub TypeNameMetaFieldDef {
         description => 'The name of the current Object type at runtime.',
         args => [],
         resolve => sub {
-            my (undef, $source, $args, $context, $xxx) = @_;
-            # TODO: rename xxx
-            die;
-            $xxx->{parent_type}->name;
+            my ($source, $args, $context, $info) = @_;
+            return $info->{parent_type}->name;
         },
     }
 }
