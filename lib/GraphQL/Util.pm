@@ -5,8 +5,9 @@ use warnings;
 
 use DDP;
 
-use Scalar::Util qw/blessed/;
+use JSON qw/encode_json/;
 use List::Util qw/reduce max min/;
+use Scalar::Util qw/blessed/;
 
 use Exporter qw/import/;
 
@@ -21,10 +22,13 @@ our @EXPORT_OK = (qw/
 
     quoted_or_list
     stringify_type
+    stringify
     suggestion_list
 
     type_from_ast
     value_from_ast
+
+    is_collection
 /);
 
 use GraphQL::Language::Parser;
@@ -132,7 +136,7 @@ sub is_valid_js_value {
         # Ensure every provided field is defined.
         for my $provided_field (keys %$value) {
             unless ($fields->{ $provided_field }) {
-                push @errors, [qq`In field "$provided_field": Unknown field.`];
+                push @errors, qq`In field "$provided_field": Unknown field.`;
             }
         }
 
@@ -279,6 +283,11 @@ sub stringify_type {
     return \$str;
 }
 
+sub stringify {
+    my $value = shift;
+    return ref($value) ? encode_json($value) : qq'"$value"';
+}
+
 # Given an invalid input string and a list of valid options, returns a filtered
 # list of valid options sorted based on their similarity with the input.
 sub suggestion_list {
@@ -417,7 +426,7 @@ sub value_from_ast {
     if ($value_node->{kind} eq Kind->NULL) {
         # This is explicitly returning the value null.
         # TODO
-        return 0;
+        return JSON::null;
     }
 
     if ($value_node->{kind} eq Kind->VARIABLE) {
@@ -478,23 +487,23 @@ sub value_from_ast {
         my %coerced_obj;
         my $fields = $type->get_fields;
         my $field_nodes = key_map(
-            $value_node->fields,
+            $value_node->{fields},
             sub { $_[0]->{name}{value} }
         );
-        my $field_names = keys %$fields;
+        my @field_names = keys %$fields;
 
-        for my $field_name (keys %$field_names) {
+        for my $field_name (@field_names) {
             my $field = $fields->{ $field_name };
             my $field_node = $field_nodes->{ $field_name };
 
             if (!$field_node
                 || is_missing_variable($field_node->{value}, $variables))
             {
-                if (!is_invalid($field->{default_value})) {
+                if (defined($field->{default_value})) {
                     $coerced_obj{ $field_name } = $field->{default_value};
                 }
-                elsif ($field->{type}->isa('GraphQL::type::NonNull')) {
-                    return; # Invalid: intentionally return no value.
+                elsif ($field->{type}->isa('GraphQL::Type::NonNull')) {
+                    return;    # Invalid: intentionally return no value.
                 }
 
                 next;
@@ -533,6 +542,12 @@ sub is_missing_variable {
     my ($value_node, $variables) = @_;
     return $value_node->{kind} eq Kind->VARIABLE &&
         (!$variables || is_invalid($variables->{ $value_node->{name}{value} }));
+}
+
+sub is_collection {
+    my $obj = shift;
+    return ref($obj) eq 'ARRAY' || (ref($obj) eq 'HASH' && scalar(keys %$obj) > 1);
+
 }
 
 1;

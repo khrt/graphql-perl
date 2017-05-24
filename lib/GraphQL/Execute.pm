@@ -182,11 +182,6 @@ sub execute_operation {
     # print 'eo fields '; p $fields;
 
     my $path;
-    # NOTE: not needed
-    # if ($operation->{operation} eq 'mutation') {
-    #     return execute_fields_serially($exe_context, $type, $root_value, $path, $fields);
-    # }
-
     return execute_fields($exe_context, $type, $root_value, $path, $fields);
 }
 
@@ -223,31 +218,6 @@ sub get_operation_root_type {
             [$operation]
         );
     }
-}
-
-# Implements the "Evaluating selection sets" section of the spec
-# for "write" mode.
-# NOTE: Not needed
-sub execute_fields_serially {
-    my ($exe_context, $parent_type, $source_value, $path, $fields) = @_;
-
-    return reduce {
-        my $field_nodes = $fields->{ $b };
-        my $field_path = add_path($path, $b);
-        my $result = resolve_field(
-            $exe_context,
-            $parent_type,
-            $source_value,
-            $field_nodes,
-            $field_path
-        );
-        print 'efs '; p $result;
-
-        return $a if not defined($result);
-
-        $a->{ $b } = $result;
-        $a;
-    } {}, keys %$fields;
 }
 
 # Implements the "Evaluating selection sets" section of the spec
@@ -484,15 +454,15 @@ sub resolve_field_value_or_error {
             $field_node,
             $exe_context->{variable_values}
         );
-        # print 'roe args '; p $args;
+        # print 'rfvor args '; p $args;
 
         $resolve_fn->($source, $args, $context, $info);
     };
-    # print 'res '; p $res;
+    # print 'rfvor res '; p $res;
 
     if (my $e = $@) {
         # print 'eval of rfvor '; warn $e;
-        return GraphQLError($e, [$field_node]);
+        return blessed($e) ? $e : GraphQLError($e, [$field_node]);
     };
 
     return $res;
