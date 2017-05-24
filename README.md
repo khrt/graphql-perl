@@ -15,28 +15,13 @@ GraphQL - A Perl implementation of [GraphQL](http://graphql.org/).
 
 # DESCRIPTION
 
-# EXPORTS
-
-A GraphQL module doesn't import anything by default and provides following items
-for importing by request.
-
-## graphql
-
-A function to parse, validate, and execute GraphQL queries. It accepts following
-parameters:
-
-Usually called like this:
-
-    graphql(
-        $schema,
-        '{ human(id: "1000") { name } }'
-    );
-
-## :types
-
-Exports base GraphQL types. See ["TYPES"](#types) section.
+graphql-perl is a port of a [reference GraphQL implementation](https://github.com/graphql/graphql-js)
+implements GraphQL types, parser, validation and execution need to build
+GraphQL schema and execute GraphQL queries.
 
 # TYPES
+
+To import all available GraphQL types use `:types` tag from [GraphQL](https://metacpan.org/pod/GraphQL) class.
 
 ## Object Types and Fields
 
@@ -219,7 +204,7 @@ See _examples_ directory.
 
 # ACKNOWLEDGEMENTS
 
-Actually mostly a port of a [reference GraphQL implementation](https://github.com/graphql/graphql-js) written in JavaScript.
+Actually a port of a [reference GraphQL implementation](https://github.com/graphql/graphql-js).
 
 # AUTHOR
 
