@@ -132,6 +132,13 @@ To import all available GraphQL types use C<:types> tag from L<GraphQL> class.
 Object represents a list of named fields, each of which yield a value of a
 specific type.
 
+    GraphQLObjectType(
+        name => '',
+        fields => {
+            ...
+        },
+    );
+
 Possible parameters of an object:
 
 =over
@@ -148,17 +155,20 @@ Possible parameters of an object:
 
 =back
 
-
-    GraphQLObjectType(
-        name => '',
-        fields => {
-            ...
-        },
-    );
-
 =head3 Fields
 
 List of named fields.
+
+    {
+        args => {
+            ...
+        },
+        type => GraphQLString,
+        resolve => sub {
+            my ($obj, $args) = @_;
+            ...
+        },
+    }
 
 Possible argument of a field:
 
@@ -177,21 +187,17 @@ Possible argument of a field:
 =back
 
 
-    {
-        args => {
-            ...
-        },
-        type => GraphQLString,
-        resolve => sub {
-            my ($obj, $args) = @_;
-            ...
-        },
-    }
-
 =head3 Arguments
 
 Arguments are applicable to fields and should defined like a HASH ref of
 arguments of HASH ref with type.
+
+    {
+        arg_name => {
+            type => GraphQL,
+            description => 'Argument description',
+        },
+    }
 
 Possible parameters of an argument:
 
@@ -204,14 +210,6 @@ Possible parameters of an argument:
 =item * default_value - optional;
 
 =back
-
-
-    {
-        arg_name => {
-            type => GraphQL,
-            description => 'Argument description',
-        },
-    }
 
 L<GraphQL::Language::Object>
 

@@ -30,6 +30,13 @@ To import all available GraphQL types use `:types` tag from [GraphQL](https://me
 Object represents a list of named fields, each of which yield a value of a
 specific type.
 
+    GraphQLObjectType(
+        name => '',
+        fields => {
+            ...
+        },
+    );
+
 Possible parameters of an object:
 
 - name;
@@ -38,24 +45,9 @@ Possible parameters of an object:
 - interfaces - optional;
 - is\_type\_of - optional;
 
-    GraphQLObjectType(
-        name => '',
-        fields => {
-            ...
-        },
-    );
-
 ### Fields
 
 List of named fields.
-
-Possible argument of a field:
-
-- type;
-- args - see ["Arguments"](#arguments);
-- resolve - must a code ref if passed;
-- description - optional;
-- deprecation\_reason - optional;
 
     {
         args => {
@@ -68,16 +60,18 @@ Possible argument of a field:
         },
     }
 
+Possible argument of a field:
+
+- type;
+- args - see ["Arguments"](#arguments);
+- resolve - must a code ref if passed;
+- description - optional;
+- deprecation\_reason - optional;
+
 ### Arguments
 
 Arguments are applicable to fields and should defined like a HASH ref of
 arguments of HASH ref with type.
-
-Possible parameters of an argument:
-
-- type;
-- description - optional;
-- default\_value - optional;
 
     {
         arg_name => {
@@ -85,6 +79,12 @@ Possible parameters of an argument:
             description => 'Argument description',
         },
     }
+
+Possible parameters of an argument:
+
+- type;
+- description - optional;
+- default\_value - optional;
 
 [GraphQL::Language::Object](https://metacpan.org/pod/GraphQL::Language::Object)
 
