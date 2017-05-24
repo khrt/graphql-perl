@@ -472,7 +472,7 @@ sub __Schema {
                 description => 'A list of all types supported by this server.',
                 type => GraphQLNonNull(GraphQLList(GraphQLNonNull(__Type))),
                 resolve => sub {
-                    my ($self, $schema) = @_;
+                    my ($schema) = @_;
                     my $type_map = $schema->get_type_map;
                     return { map { $_ => $type_map->{$_} } keys %$type_map };
                 }
@@ -481,7 +481,7 @@ sub __Schema {
                 description => 'The type that query operations will be rooted at.',
                 type => GraphQLNonNull(__Type),
                 resolve => sub {
-                    my ($self, $schema) = @_;
+                    my ($schema) = @_;
                     $schema->get_query_type;
                 },
             },
@@ -490,7 +490,7 @@ sub __Schema {
                              . 'mutation operations will be rooted at.',
                 type => __Type,
                 resolve => sub {
-                    my ($self, $schema) = @_;
+                    my ($schema) = @_;
                     $schema->get_mutation_type;
                 },
             },
@@ -499,7 +499,7 @@ sub __Schema {
                              . 'subscription operations will be rooted at.',
                 type => __Type,
                 resolve => sub {
-                    my ($self, $schema) = @_;
+                    my ($schema) = @_;
                     $schema->get_subscription_type;
                 },
             },
@@ -507,7 +507,7 @@ sub __Schema {
                 description => 'A list of all directives supported by this server.',
                 type => GraphQLNonNull(GraphQLList(GraphQLNonNull(__Directive))),
                 resolve => sub {
-                    my ($self, $schema) = @_;
+                    my ($schema) = @_;
                     $schema->get_directives;
                 },
             }

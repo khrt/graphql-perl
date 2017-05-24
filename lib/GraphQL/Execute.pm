@@ -527,7 +527,7 @@ sub complete_value_with_located_error {
     };
 
     if (my $e = $@) {
-        # print 'eval of cv '; p $e;
+        print 'eval of cv '; p $e;
         die located_error($e, $field_nodes, response_path_as_array($path));
     };
 
@@ -647,6 +647,7 @@ sub complete_value {
 sub complete_list_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
+    p $result;
     die "Expected Iterable, but did not find one for field $info->{parent_type}{name}.$info->{field_name}."
         if ref($result) ne 'ARRAY';
 

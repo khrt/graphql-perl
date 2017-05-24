@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 
+use DDP;
 use Test::More;
 use Test::Deep;
 use JSON qw/encode_json/;
@@ -59,19 +60,17 @@ subtest 'nulls a nullable field' => sub {
 EOQ
 
     my $ast = parse($doc);
-    my $expected = {
+    # p execute($schema, $ast, $throwing_data);
+
+    cmp_deeply execute($schema, $ast, $throwing_data), {
         data => {
             sync => undef,
         },
-        errors => [
-            {
-                message => $sync_error->{message},
-                locations => [{ line => 3, column => 9 }]
-            }
-        ]
+        errors => [noclass(superhashof({
+            message => $sync_error->{message},
+            locations => [{ line => 3, column => 9 }]
+        }))],
     };
-
-    cmp_deeply execute($schema, $ast, $throwing_data), superhashof($expected);
 };
 
 subtest 'nulls a synchronously returned object that contains a non-nullable field that throws synchronously' => sub {
@@ -85,19 +84,15 @@ EOQ
 
     my $ast = parse($doc);
 
-    my $expected = {
+    cmp_deeply execute($schema, $ast, $throwing_data), {
         data => {
             nest => undef
         },
-        errors => [
-            {
-                message => $nonundef_sync_error->{message},
-                locations => [{ line => 4, column => 11 }]
-            }
-        ]
+        errors => [noclass(superhashof({
+            message => $nonundef_sync_error->{message},
+            locations => [{ line => 4, column => 11 }]
+        }))],
     };
-
-    cmp_deeply execute($schema, $ast, $throwing_data), $expected;
 };
 
 
@@ -116,7 +111,7 @@ EOQ
         }
     };
 
-    cmp_deeply execute($schema, $ast, $undefing_data), superhashof($expected);
+    cmp_deeply execute($schema, $ast, $undefing_data), $expected;
 };
 
 subtest 'nulls a synchronously returned object that contains a non-nullable field that returns undef synchronously' => sub {
@@ -130,19 +125,15 @@ EOQ
 
     my $ast = parse($doc);
 
-    my $expected = {
+    cmp_deeply execute($schema, $ast, $undefing_data), {
         data => {
             nest => undef
         },
-        errors => [
-            {
-                message => 'Cannot return undef for non-nullable field DataType.nonNullSync.',
-                locations => [{ line => 4, column => 11 }]
-            }
-        ]
-    };
-
-    cmp_deeply execute($schema, $ast, $undefing_data), superhashof($expected);
+        errors => [noclass(superhashof({
+            message => 'Cannot return undef for non-nullable field DataType.nonNullSync.',
+            locations => [{ line => 4, column => 11 }]
+        }))],
+    }
 };
 
 
@@ -151,17 +142,13 @@ subtest 'nulls the top level if sync non-nullable field throws' => sub {
       query Q { nonNullSync }
 EOQ
 
-    my $expected = {
+    cmp_deeply execute($schema, parse($doc), $throwing_data), {
         data => undef,
-        errors => [
-            {
-                message   => $nonundef_sync_error->{message},
-                locations => [{ line => 2, column => 17 }]
-            }
-        ]
+        errors => [noclass(superhashof({
+            message => $nonundef_sync_error->{message},
+            locations => [{ line => 2, column => 17 }]
+        }))]
     };
-
-    cmp_deeply execute($schema, parse($doc), $throwing_data), superhashof($expected);
 };
 
 subtest 'nulls the top level if sync non-nullable field returns undef' => sub {
@@ -169,17 +156,13 @@ subtest 'nulls the top level if sync non-nullable field returns undef' => sub {
       query Q { nonNullSync }
 EOQ
 
-    my $expected = {
+    cmp_deeply execute($schema, parse($doc), $undefing_data), {
         data => undef,
-        errors => [
-            { 
-                message => 'Cannot return undef for non-nullable field DataType.nonnulnull.',
-                locations => [{ line => 2, column => 17 }],
-            }
-        ]
+        errors => [noclass(superhashof({
+            message => 'Cannot return undef for non-nullable field DataType.nonnulnull.',
+            locations => [{ line => 2, column => 17 }],
+        }))],
     };
-
-    cmp_deeply execute($schema, parse($doc), $undefing_data), superhashof($expected);
 };
 
 done_testing;

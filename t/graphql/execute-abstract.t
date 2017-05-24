@@ -278,11 +278,11 @@ subtest 'resolve_type on Interface yields useful error' => sub {
             ],
         },
         errors => [
-            superhashof({
+            noclass(superhashof({
                 message => 'Runtime Object type "Human" is not a possible type for "Pet".',
                 locations => [{ line => 2, column => 7 }],
                 # TODO path => ['pets', 2]
-            }),
+            })),
         ],
     };
 };
@@ -373,11 +373,11 @@ subtest 'resolve_type on Union yields useful error' => sub {
             ],
         },
         errors => [
-            superhashof({
+            noclass(superhashof({
                 message => 'Runtime Object type "Human" is not a possible type for "Pet".',
                 locations => [{ line => 2, column => 7 }],
                 # TODO path => ['pets', 2]
-            }),
+            })),
         ],
     };
 };
