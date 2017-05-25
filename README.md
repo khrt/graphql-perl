@@ -209,10 +209,6 @@ See _examples_ directory.
 
 [https://github.com/khrt/graphql-perl](https://github.com/khrt/graphql-perl)
 
-# ACKNOWLEDGEMENTS
-
-Actually a port of a [reference GraphQL implementation](https://github.com/graphql/graphql-js).
-
 # AUTHOR
 
 Artur Khabibullin - rtkh@cpan.org

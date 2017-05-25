@@ -349,10 +349,6 @@ See I<examples> directory.
 
 L<https://github.com/khrt/graphql-perl|https://github.com/khrt/graphql-perl>
 
-=head1 ACKNOWLEDGEMENTS
-
-Actually a port of a L<reference GraphQL implementation|https://github.com/graphql/graphql-js>.
-
 =head1 AUTHOR
 
 Artur Khabibullin - rtkh@cpan.org
