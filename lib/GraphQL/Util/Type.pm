@@ -31,7 +31,6 @@ our @EXPORT_OK = (qw/
     define_field_map
     define_interfaces
     define_types
-
 /);
 
 sub is_type {

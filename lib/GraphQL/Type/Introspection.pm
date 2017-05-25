@@ -3,6 +3,8 @@ package GraphQL::Type::Introspection;
 use strict;
 use warnings;
 
+use DDP;
+
 use constant {
     SCALAR => 'SCALAR',
     OBJECT => 'OBJECT',
@@ -31,6 +33,7 @@ our @EXPORT_OK = (qw/
     TypeNameMetaFieldDef
 /);
 
+use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Printer qw/print_doc/;
 use GraphQL::Type qw/
     GraphQLScalarType
@@ -45,10 +48,10 @@ use GraphQL::Type qw/
     GraphQLString
     GraphQLBoolean
 /;
-
-    # GraphQLField
-
 use GraphQL::Type::Directive;
+use GraphQL::Util qw/
+    ast_from_value
+/;
 use GraphQL::Util::Type qw/is_abstract_type/;
 
 sub DirectiveLocation { 'GraphQL::Type::Directive' }
@@ -71,32 +74,32 @@ sub __TypeKind {
             INTERFACE => {
                 value => INTERFACE,
                 description => 'Indicates this type is an interface. '
-                             . '`fields` and `possibleTypes` are valid fields.'
+                             . '`fields` and `possible_types` are valid fields.'
             },
             UNION => {
                 value => UNION,
                 description => 'Indicates this type is a union. '
-                             . '`possibleTypes` is a valid field.'
+                             . '`possible_types` is a valid field.'
             },
             ENUM => {
                 value => ENUM,
                 description => 'Indicates this type is an enum. '
-                             . '`enumValues` is a valid field.'
+                             . '`enum_values` is a valid field.'
             },
             INPUT_OBJECT => {
                 value => INPUT_OBJECT,
                 description => 'Indicates this type is an input object. '
-                             . '`inputFields` is a valid field.'
+                             . '`input_fields` is a valid field.'
             },
             LIST => {
                 value => LIST,
                 description => 'Indicates this type is a list. '
-                             . '`ofType` is a valid field.'
+                             . '`of_type` is a valid field.'
             },
             NON_NULL => {
                 value => NON_NULL,
                 description => 'Indicates this type is a non-null. '
-                             . '`ofType` is a valid field.'
+                             . '`of_type` is a valid field.'
             },
         },
     );
@@ -114,9 +117,7 @@ sub __EnumValue {
             name => { type => GraphQLNonNull(GraphQLString) },
             description => { type => GraphQLString },
             is_deprecated => { type => GraphQLNonNull(GraphQLBoolean) },
-            deprecation_reason => {
-                type => GraphQLString,
-            }
+            deprecation_reason => { type => GraphQLString }
         } },
     );
 }
@@ -132,18 +133,15 @@ sub __InputValue {
         fields => sub { {
             name => { type => GraphQLNonNull(GraphQLString) },
             description => { type => GraphQLString },
-            #TODO: type => { type => GraphQLNonNull(__Type) },
+            type => { type => GraphQLNonNull(&__Type) },
             default_value => {
                 type => GraphQLString,
-                description =>
-                      'A GraphQL-formatted string representing the default value for this '
-                    . 'input value.',
+                description => 'A GraphQL-formatted string representing the default value for this input value.',
                 resolve => sub {
                     my ($input_val) = @_;
-                    # TODO
-                    # is_invalid($input_val->{default_value})
-                    #     ? undef
-                    #     : print_doc(ast_from_value($input_val->{default_value}, $input_val->{type}));
+                    return defined($input_val->{default_value})
+                        ? print_doc(ast_from_value($input_val->{default_value}, $input_val->{type}))
+                        : undef;
                 },
             }
         } },
@@ -167,9 +165,9 @@ sub __Field {
                     return $field->args || [];
                 },
             },
-            # TODO: type => { type => GraphQLNonNull(__Type) },
-            isDeprecated => { type => GraphQLNonNull(GraphQLBoolean) },
-            deprecationReason => {
+            type => { type => GraphQLNonNull(&__Type) },
+            is_deprecated => { type => GraphQLNonNull(GraphQLBoolean) },
+            deprecation_reason => {
                 type => GraphQLString,
             }
         } },
@@ -221,7 +219,7 @@ sub __Type {
                         return NON_NULL;
                     }
 
-                    die "Unknown kind of type => $type";
+                    die GraphQLError("Unknown kind of type: $type");
                 }
             },
             name => { type => GraphQLString },
@@ -235,18 +233,17 @@ sub __Type {
                     my ($type, $args) = @_;
                     my $include_deprecated = $args->{include_deprecated};
 
-                    if (   $type->isa(GraphQLObjectType)
-                        || $type->isa(GraphQLInterfaceType))
+                    if (   $type->isa('GraphQL::Type::Object')
+                        || $type->isa('GraphQL::Type::Interface'))
                     {
                         my $field_map = $type->get_fields;
-                        my %fields = map { $_ => $field_map->{$_} } keys %$field_map;
+                        my @fields = map { $field_map->{$_} } keys %$field_map;
 
                         if (!$include_deprecated) {
-                            die;
-                            #$fields = $fields->filter(field => !$field->deprecationReason);
+                            @fields = grep { !$_->{deprecation_reason} } @fields;
                         }
 
-                        return \%fields;
+                        return \@fields;
                     }
 
                     return;
@@ -256,7 +253,7 @@ sub __Type {
                 type => GraphQLList(GraphQLNonNull($__Type)),
                 resolve => sub {
                     my ($type) = @_;
-                    if ($type->isa(GraphQLObjectType)) {
+                    if ($type->isa('GraphQL::Type::Object')) {
                         return $type->get_interfaces;
                     }
                     return;
@@ -265,7 +262,6 @@ sub __Type {
             possible_types => {
                 type => GraphQLList(GraphQLNonNull($__Type)),
                 resolve => sub {
-                    # TODO parameter name xxx
                     my ($type, $args, $context, $info) = @_;
                     my $schema = $info->{schema};
 
@@ -285,12 +281,11 @@ sub __Type {
                     my ($type, $args) = @_;
                     my $include_deprecated = $args->{include_deprecated};
 
-                    if ($type->isa(GraphQLEnumType)) {
+                    if ($type->isa('GraphQL::Type::Enum')) {
                         my $values = $type->get_values;
 
                         if (!$include_deprecated) {
-                            die;
-                            # values = values->filter(value => !value->deprecationReason);
+                            $values = [grep { !$_->{deprecation_reason} } @$values];
                         }
 
                         return $values;
@@ -304,9 +299,9 @@ sub __Type {
                 resolve => sub {
                     my ($type) = @_;
 
-                    if ($type->isa(GraphQLInputObjectType)) {
+                    if ($type->isa('GraphQL::Type::InputObject')) {
                         my $field_map = $type->get_fields;
-                        return [map { $_ => $field_map->{$_} } keys %$field_map];
+                        return [map { $field_map->{$_} } keys %$field_map];
                     }
 
                     return;
@@ -432,6 +427,7 @@ sub __Directive {
                 type => GraphQLNonNull(GraphQLBoolean),
                 resolve => sub {
                     my (undef, $d) = @_;
+                    die;
                     $d->locations->indexOf(DirectiveLocation->QUERY) != -1 ||
                     $d->locations->indexOf(DirectiveLocation->MUTATION) != -1 ||
                     $d->locations->indexOf(DirectiveLocation->SUBSCRIPTION) != -1;
@@ -474,10 +470,10 @@ sub __Schema {
                 resolve => sub {
                     my ($schema) = @_;
                     my $type_map = $schema->get_type_map;
-                    return { map { $_ => $type_map->{$_} } keys %$type_map };
+                    return [map { $type_map->{$_} } keys %$type_map];
                 }
             },
-            queryType => {
+            query_type => {
                 description => 'The type that query operations will be rooted at.',
                 type => GraphQLNonNull(__Type),
                 resolve => sub {
@@ -485,7 +481,7 @@ sub __Schema {
                     $schema->get_query_type;
                 },
             },
-            mutationType => {
+            mutation_type => {
                 description => 'If this server supports mutation, the type that '
                              . 'mutation operations will be rooted at.',
                 type => __Type,
@@ -494,7 +490,7 @@ sub __Schema {
                     $schema->get_mutation_type;
                 },
             },
-            subscriptionType => {
+            subscription_type => {
                 description => 'If this server support subscription, the type that '
                              . 'subscription operations will be rooted at.',
                 type => __Type,

@@ -46,6 +46,8 @@ sub _define_field_map {
         assert_valid_name($field_name);
 
         my $field = {
+            # description - can be omitted
+            default_value => undef,
             %{ $field_map->{$field_name} },
             name => $field_name,
         };

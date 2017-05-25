@@ -95,17 +95,16 @@ subtest 'is_type_of used to resolve runtime type for Interface' => sub {
     }';
 
     my $result = graphql($schema, $query);
-
     is_deeply $result, {
         data => {
             pets => [
                 {
                     name  => 'Odie',
-                    woofs => 1
+                    woofs => 1,
                 },
                 {
                     name  => 'Garfield',
-                    meows => 0
+                    meows => undef,# false
                 },
             ],
         },
@@ -170,17 +169,16 @@ subtest 'is_type_of used to resolve runtime type for Union' => sub {
     }';
 
     my $result = graphql($schema, $query);
-
     is_deeply $result, {
         data => {
             pets => [
                 {
                     name  => 'Odie',
-                    woofs => 1
+                    woofs => 1,
                 },
                 {
                     name  => 'Garfield',
-                    meows => 0
+                    meows => undef,# false
                 },
             ],
         },
@@ -268,11 +266,11 @@ subtest 'resolve_type on Interface yields useful error' => sub {
             pets => [
                 {
                     name  => 'Odie',
-                    woofs => 1
+                    woofs => 1, # true
                 },
                 {
                     name  => 'Garfield',
-                    meows => 0
+                    meows => undef, # false
                 },
                 undef,
             ],
@@ -363,11 +361,11 @@ subtest 'resolve_type on Union yields useful error' => sub {
             pets => [
                 {
                     name  => 'Odie',
-                    woofs => 1
+                    woofs => 1, # true
                 },
                 {
                     name  => 'Garfield',
-                    meows => 0
+                    meows => undef, # false
                 },
                 undef
             ],
@@ -451,7 +449,7 @@ subtest 'resolve_type allows resolving with type name' => sub {
         data => {
             pets => [
                 { name => 'Odie', woofs => 1 },
-                { name => 'Garfield', meows => 0 },
+                { name => 'Garfield', meows => undef },
             ]
         }
     };

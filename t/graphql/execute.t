@@ -8,11 +8,11 @@ use Test::More;
 use Test::Deep;
 use JSON qw/encode_json/;
 
-use GraphQL::Execute qw/execute/;
+use GraphQL qw/:types/;
 use GraphQL::Error qw/GraphQLError format_error/;
+use GraphQL::Execute qw/execute/;
 use GraphQL::Language::Parser qw/parse/;
 use GraphQL::Language::Visitor qw/NULL/;
-use GraphQL::Type qw/:all/;
 use GraphQL::Util::Type qw/is_input_type is_output_type/;
 
 subtest 'throws if no document is provided' => sub {
@@ -53,56 +53,6 @@ subtest 'executes arbitrary code' => sub {
       deeper => sub { [$data, undef, $data] }
     };
 
-    my $doc = <<'EOF';
-      query Example($size: Int) {
-        a,
-        b,
-        x: c
-        ...c
-        f
-        ...on DataType {
-          pic(size: $size)
-        }
-        deep {
-          a
-          b
-          c
-          deeper {
-            a
-            b
-          }
-        }
-      }
-
-      fragment c on DataType {
-        d
-        e
-      }
-EOF
-    my $ast = parse($doc);
-
-    my $expected = {
-        data => {
-            a => 'Apple',
-            b => 'Banana',
-            x => 'Cookie',
-            d => 'Donut',
-            e => 'Egg',
-            f => 'Fish',
-            pic => 'Pic of size: 100',
-            deep => {
-                a => 'Already Been Done',
-                b => 'Boring',
-                c => ['Contrived', undef, 'Confusing'],
-                deeper => [
-                    { a => 'Apple', b => 'Banana' },
-                    undef,
-                    { a => 'Apple', b => 'Banana' },
-                ],
-            },
-        },
-    };
-
     my $DeepDataType;
     my $DataType = GraphQLObjectType(
       name => 'DataType',
@@ -139,8 +89,56 @@ EOF
       query => $DataType
     );
 
-    my $res = execute($schema, $ast, $data, NULL, { size => 100 }, 'Example');
-    is_deeply $res, $expected;
+    my $doc = <<'EOF';
+      query Example($size: Int) {
+        a,
+        b,
+        x: c
+        ...c
+        f
+        ...on DataType {
+          pic(size: $size)
+        }
+        deep {
+          a
+          b
+          c
+          deeper {
+            a
+            b
+          }
+        }
+      }
+
+      fragment c on DataType {
+        d
+        e
+      }
+EOF
+    my $ast = parse($doc);
+
+    my $res = execute($schema, $ast, $data, undef, { size => 100 }, 'Example');
+    is_deeply $res, {
+        data => {
+            a => 'Apple',
+            b => 'Banana',
+            x => 'Cookie',
+            d => 'Donut',
+            e => 'Egg',
+            f => 'Fish',
+            pic => 'Pic of size: 100',
+            deep => {
+                a => 'Already Been Done',
+                b => 'Boring',
+                c => ['Contrived', undef, 'Confusing'],
+                deeper => [
+                    { a => 'Apple', b => 'Banana' },
+                    undef,
+                    { a => 'Apple', b => 'Banana' },
+                ],
+            },
+        },
+    };
 };
 
 subtest 'merges parallel fragments' => sub{
@@ -780,10 +778,10 @@ subtest 'fails when an is_type_of check is not met' => sub {
     };
     is scalar(@{ $result->{errors} }), 1;
     cmp_deeply $result->{errors}[0],
-        superhashof({
+        noclass(superhashof({
             message => 'Expected value of type "SpecialType" but got: NotSpecial.',
             locations => [{ line => 1, column => 3 }]
-        });
+        }));
 };
 
 subtest 'fails to execute a query containing a type definition' => sub {
@@ -809,10 +807,10 @@ subtest 'fails to execute a query containing a type definition' => sub {
         $caught_error = $e;
     }
 
-    cmp_deeply $caught_error, superhashof({
+    cmp_deeply $caught_error, noclass(superhashof({
         message => 'GraphQL cannot execute a request containing a ObjectTypeDefinition.',
         locations => [ { line => 4, column => 7 } ]
-    });
+    }));
 };
 
 done_testing;

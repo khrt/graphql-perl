@@ -4,7 +4,7 @@ use warnings;
 
 use Test::More;
 
-use GraphQL::Type qw/:all/;
+use GraphQL qw/:types/;
 
 my $ImplementingType;
 

@@ -179,10 +179,6 @@ EOQ
                 title => 'My Article 1',
                 body => 'This is a post',
 
-                # TODO Those fields should be skipped
-                hidden => undef, # XXX
-                notdefined => undef, # XXX
-
                 author => {
                     id => '123',
                     name => 'John Smith',
@@ -197,10 +193,6 @@ EOQ
                         title => 'My Article 1',
                         body => 'This is a post',
                         keywords => ['foo', 'bar', '1', '1', undef],
-
-                        # TODO Those fields should be skipped
-                        hidden => undef, # XXX
-                        notdefined => undef, # XXX
                     }
                 }
             }

@@ -3,6 +3,7 @@ package GraphQL::Util;
 use strict;
 use warnings;
 
+use Carp qw/longmess/;
 use DDP;
 
 use JSON qw/encode_json/;
@@ -28,12 +29,15 @@ our @EXPORT_OK = (qw/
     type_from_ast
     value_from_ast
 
+    ast_from_value
+
     is_collection
 /);
 
 use GraphQL::Language::Parser;
 use GraphQL::Language::Printer qw/print_doc/;
 
+use GraphQL::Execute; # TODO DO NOT
 # use GraphQL::Type qw/:all/;
 
 sub Kind { 'GraphQL::Language::Parser' }
@@ -45,6 +49,7 @@ sub assert_valid_name {
     my ($name, $is_introspection) = @_;
 
     if (!$name || ref($name)) {
+        warn longmess 'named';
         die "Must be named. Unexpected name: $name.";
     }
 
@@ -99,7 +104,8 @@ sub is_valid_js_value {
 
     # A value must be provided if the type is non-null.
     if ($type->isa('GraphQL::Type::NonNull')) {
-        unless($value) {
+        if (!$value || (ref($value) && $value == GraphQL::Execute::NULLISH)) {
+        # unless ($value) {
             return [qq`Expected "${ stringify_type($type) }", found null.`];
         }
         return is_valid_js_value($value, $type->of_type);
@@ -285,7 +291,11 @@ sub stringify_type {
 
 sub stringify {
     my $value = shift;
-    return ref($value) ? encode_json($value) : qq'"$value"';
+    return
+        ref($value)
+        && $value == GraphQL::Execute::NULLISH ? 'null'
+        : ref($value)                          ? encode_json($value)
+        :                                        qq'"$value"';
 }
 
 # Given an invalid input string and a list of valid options, returns a filtered
@@ -536,6 +546,114 @@ sub value_from_ast {
     return $parsed;
 }
 
+# Produces a GraphQL Value AST given a JavaScript value.
+#
+# A GraphQL type must be provided, which will be used to interpret different
+# JavaScript values.
+#
+# | JSON Value    | GraphQL Value        |
+# | ------------- | -------------------- |
+# | Object        | Input Object         |
+# | Array         | List                 |
+# | Boolean       | Boolean              |
+# | String        | String / Enum Value  |
+# | Number        | Int / Float          |
+# | Mixed         | Enum Value           |
+# | null          | NullValue            |
+#
+sub ast_from_value {
+    my ($value, $type) = @_;
+
+    if ($type->isa('GraphQL::Type::NonNull')) {
+        my $ast_value = ast_from_value($value, $type->of_type);
+        if ($ast_value && $ast_value->{kind} eq Kind->NULL) {
+            return JSON::null;
+        }
+        return $ast_value;
+    }
+
+    # only explicit null, not undefined, NaN
+    # TODO
+    if (defined($value) && !$value) {
+        return { kind => 'NullValueNode' }; # TODO from AST
+    }
+
+    unless (defined($value)) {
+        return JSON::null;
+    }
+
+    # Convert JavaScript array to GraphQL list. If the GraphQLType is a list, but
+    # the value is not an array, convert the value using the list's item type.
+    if ($type->isa('GraphQL::Type::List')) {
+        my $item_type = $type->of_type;
+
+        if (ref($value) eq 'ARRAY') {
+            my @values_nodes;
+            for my $item (@$value) {
+                my $item_node = ast_from_value($item, $item_type);
+                push @values_nodes, $item_node if $item_node;
+            }
+            return { kind => Kind->LIST, values => \@values_nodes };
+        }
+
+        return ast_from_value($value, $item_type);
+    }
+
+
+    # Populate the fields of the input object by creating ASTs from each value
+    # in the JavaScript object according to the fields in the input type.
+    if ($type->isa('GraphQL::Type::InputObject')) {
+        return JSON::null if ref($value) ne 'HASH';
+
+        my $fields = $type->get_fields;
+        my @field_nodes;
+
+        for my $field_name (keys %$fields) {
+            my $field_type = $fields->{ $field_name }{type};
+            my $field_value = ast_from_value($value->{ $field_name }, $field_type);
+
+            if ($field_value) {
+                push @field_nodes, {
+                    kind => Kind->OBJECT_FIELD,
+                    name => { kind => Kind->NAME, value => $field_name },
+                    value => $field_value,
+                };
+            }
+        }
+
+        return { kind => Kind->OBJECT, fields => \@field_nodes };
+    }
+
+    die "Must provide Input Type, cannot use: ${ stringify_type($type) }"
+        if !$type->isa('GraphQL::Type::Scalar') && !$type->isa('GraphQL::Type::Enum');
+
+    # Since value is an internally represented value, it must be serialized
+    # to an externally represented value before converting into an AST.
+    my $serialized = $type->serialize($value);
+    if (!$serialized) {
+        return JSON::null;
+    }
+
+    # Others serialize based on their corresponding scalar types.
+    if ($serialized =~ /^[.\d]+$/) {
+        return $serialized =~ /^\d+$/
+            ? { kind => Kind->INT, value => $serialized }
+            : { kind => Kind->FLOAT, value => $serialized };
+    }
+    else {
+        if ($type->isa('GraphQL::Type::ENUM')) {
+            return { kind => Kind->ENUM, value => $serialized };
+        }
+
+        return { kind => Kind->STRING, value => $serialized };
+    }
+
+    # TODO Boolean
+    # TODO ID
+
+    die "Cannot convert value to AST: ${ \stringify($value) }\n";
+}
+
 # Returns true if the provided valueNode is a variable which is not defined
 # in the set of variables.
 sub is_missing_variable {
@@ -547,7 +665,6 @@ sub is_missing_variable {
 sub is_collection {
     my $obj = shift;
     return ref($obj) eq 'ARRAY' || (ref($obj) eq 'HASH' && scalar(keys %$obj) > 1);
-
 }
 
 1;

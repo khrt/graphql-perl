@@ -42,6 +42,7 @@ sub Kind { 'GraphQL::Language::Parser' }
 sub get_variable_values {
     my ($schema, $var_def_nodes, $inputs) = @_;
 
+    # print 'inputs '; p $inputs;
     # print 'vv vdn '; p $var_def_nodes;
 
     my %coerced_values;
@@ -49,6 +50,9 @@ sub get_variable_values {
     for my $var_def_node (@$var_def_nodes) {
         my $var_name = $var_def_node->{variable}{name}{value};
         my $var_type = type_from_ast($schema, $var_def_node->{type});
+
+        # print 'var name '; p $var_name;
+        # print 'var type '; p $var_type;
 
         if (!is_input_type($var_type)) {
             die GraphQLError(
@@ -60,7 +64,10 @@ sub get_variable_values {
 
         my $value = $inputs->{ $var_name };
         # print 'value '; p $value;
+
         if (!defined($value)) {
+            # warn 'of required type ' x 5;
+
             if (my $default_value = $var_def_node->{default_value}) {
                 # print 'default value '; p $default_value, max_depth => 3;
                 $coerced_values{ $var_name } = value_from_ast($default_value, $var_type);
@@ -75,7 +82,10 @@ sub get_variable_values {
             }
         }
         else {
+            # warn 'got invalid ' x 5;
+
             my $errors = is_valid_js_value($value, $var_type);
+            # p $errors;
             if ($errors && @$errors) {
                 my $message = @$errors ? "\n" . join("\n", @$errors) : '';
                 die GraphQLError(
@@ -155,8 +165,7 @@ sub get_argument_values {
             elsif ($arg_type->isa('GraphQL::Type::NonNull')) {
                 die GraphQLError(
                     qq`Argument "$name" of requried type "${ stringify_type($arg_type) }" was `
-                  . qq`provided the variable "\$$variable_name" which was not provided `
-                  . qq`a runtime value.`,
+                  . qq`provided the variable "\$$variable_name" which was not provided a runtime value.`,
                   [$argument_node->{value}]
                 );
             }

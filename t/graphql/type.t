@@ -6,7 +6,7 @@ use feature 'say';
 use DDP;
 use Test::More;
 
-use GraphQL::Type qw/:all/;
+use GraphQL qw/:types/;
 use GraphQL::Util::Type qw/is_input_type is_output_type/;
 
 my $BlogImage = GraphQLObjectType(

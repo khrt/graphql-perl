@@ -3,6 +3,10 @@ package GraphQL::Execute;
 use strict;
 use warnings;
 
+use constant {
+    NULLISH => {},
+};
+
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
@@ -237,11 +241,15 @@ sub execute_fields {
         );
         # print 'ef ' . $b . ' '; p $result;
 
-        if (!defined $result) {
-            # print 'not defined '; p $a;
-            warn "$b NOT DEFINED";
+        # Replace NULLISH with undef
+        if (defined($result) && ref($result) && $result == NULLISH) {
+            $result = undef;
         }
-        # return $a if not defined($result); # XXX
+        # Skip node
+        elsif (!defined $result) {
+            warn "$b NOT DEFINED SKIPPING...";
+            return $a;
+        }
 
         $a->{ $b } = $result;
         $a;
@@ -458,7 +466,9 @@ sub resolve_field_value_or_error {
 
         $resolve_fn->($source, $args, $context, $info);
     };
-    # print 'rfvor res '; p $res;
+    # print 'field def '; p $field_def;
+    # printf "rfvor res %20s: ", $info->{field_name}; p $res;
+    # print "          ^\n\n";
 
     if (my $e = $@) {
         # print 'eval of rfvor '; warn $e;
@@ -498,13 +508,14 @@ sub complete_value_catching_error {
             $result
         );
     };
+    # printf "cvce res %20s: ", $info->{field_name}; p $res;
 
     if (my $e = $@) {
         # print 'eval of cvwle '; p $e;
         # If `complete_value_with_located_error` returned abruptly (threw an error),
         # log the error and return null.
         push @{ $exe_context->{errors} }, $e;
-        return; # null
+        return NULLISH;
     };
 
     return $res;
@@ -527,7 +538,7 @@ sub complete_value_with_located_error {
     };
 
     if (my $e = $@) {
-        print 'eval of cv '; p $e;
+        # print 'eval of cv '; p $e;
         die located_error($e, $field_nodes, response_path_as_array($path));
     };
 
@@ -557,7 +568,7 @@ sub complete_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
     # say '-';
-    # print 'cv '; p $result;
+    # print 'cv res '; p $result;
     # print 'cv rt '; p $return_type;
 
     # If result is an Error, throw a located error.
@@ -577,18 +588,22 @@ sub complete_value {
             $result
         );
 
-        if (!$completed) { # null
-            die "Cannot return null for non-nullable field $info->{parent_type}{name}.$info->{field_name}.";
+        # if (!$completed) { # null
+        if (!defined($completed)) { # null
+        # if ($completed && ref($completed) && $completed == NULLISH) {
+            die GraphQLError(
+                "Cannot return null for non-nullable field $info->{parent_type}{name}.$info->{field_name}.",
+                $field_nodes
+            );
         }
 
         return $completed;
     }
 
     # If result value is null-ish (null, undefined, or NaN) then return null.
-    # TODO
-    unless (defined($result)) {
-        # say 'nullish';
-        return; # null
+    unless ($result) {
+        say 'NULLISH';
+        return NULLISH; # null
     }
 
     # If field type is List, complete each item in the list with the inner type
@@ -647,7 +662,7 @@ sub complete_value {
 sub complete_list_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
-    p $result;
+    # print 'clv result '; p $result;
     die "Expected Iterable, but did not find one for field $info->{parent_type}{name}.$info->{field_name}."
         if ref($result) ne 'ARRAY';
 
@@ -656,8 +671,6 @@ sub complete_list_value {
 
     my $index = 0;
     for my $item (@$result) {
-        # print 'list item '; p $item;
-        # print 'list item type '; p $item_type;
         # No need to modify the info object containing the path,
         # since from here on it is not ever accessed by resolver functions.
         my $field_path = add_path($path, $index++);
@@ -669,6 +682,14 @@ sub complete_list_value {
             $field_path,
             $item
         );
+        # print 'list item '; p $item;
+        # print 'list item type '; p $item_type;
+        # printf "clv ci %20s: ", $info->{field_name}; p $completed_item;
+
+        # Replace NULLISH with undef
+        if (defined($completed_item) && ref($completed_item) && $completed_item == NULLISH) {
+            $completed_item = undef;
+        }
 
         push @completed_results, $completed_item;
     }
@@ -816,14 +837,13 @@ sub collect_and_execute_subfields {
     return execute_fields($exe_context, $return_type, $result, $path, $sub_field_nodes);
 }
 
-# If a resolveType function is not given, then a default resolve behavior is
+# If a resolve_type function is not given, then a default resolve behavior is
 # used which tests each possible type for the abstract type by calling
-# isTypeOf for the object being coerced, returning the first type that matches.
+# is_type_of for the object being coerced, returning the first type that matches.
 sub default_resolve_type_fn {
     my ($value, $context, $info, $abstract_type) = @_;
 
     my $possible_types = $info->{schema}->get_possible_types($abstract_type);
-    # print 'pos typ '; p $possible_types;
 
     for my $type (@$possible_types) {
         if ($type->is_type_of) {
@@ -853,6 +873,7 @@ sub default_field_resolver {
         $property = $source->{ $info->{field_name} }->($args, $context, $info);
     }
 
+    # print " >>> res of $info->{field_name} "; p $property;
     return $property;
 }
 

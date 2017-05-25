@@ -13,7 +13,7 @@ my %module_build_args = (
   "configure_requires" => {
     "Module::Build" => "0.28"
   },
-  "dist_abstract" => "A Perl implementation of L<GraphQL|http://graphql.org/>.",
+  "dist_abstract" => "A Perl port of the reference implementation of L<GraphQL|http://graphql.org/>.",
   "dist_author" => [
     "Artur Khabibullin - rtkh\@cpan.org"
   ],

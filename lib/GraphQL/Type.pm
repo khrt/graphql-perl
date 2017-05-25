@@ -3,17 +3,6 @@ package GraphQL::Type;
 use strict;
 use warnings;
 
-use GraphQL::Type::Enum;
-use GraphQL::Type::InputObject;
-use GraphQL::Type::Interface;
-use GraphQL::Type::List;
-use GraphQL::Type::NonNull;
-use GraphQL::Type::Object;
-use GraphQL::Type::Scalar;
-use GraphQL::Type::Union;
-
-use GraphQL::Language::Parser;
-
 use POSIX qw/ceil floor/;
 
 use Exporter qw/import/;
@@ -72,6 +61,17 @@ our %EXPORT_TAGS = (
     /],
         #GraphQLField
 );
+
+use GraphQL::Type::Enum;
+use GraphQL::Type::InputObject;
+use GraphQL::Type::Interface;
+use GraphQL::Type::List;
+use GraphQL::Type::NonNull;
+use GraphQL::Type::Object;
+use GraphQL::Type::Scalar;
+use GraphQL::Type::Union;
+
+use GraphQL::Language::Parser;
 
 use constant {
     # As per the GraphQL Spec, Integers are only treated as valid when a valid

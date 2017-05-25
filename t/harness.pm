@@ -19,7 +19,7 @@ our @EXPORT_OK = (qw/
     expect_fails_rule_with_schema
 /);
 
-use GraphQL::Type qw/:all/;
+use GraphQL qw/:types/;
 use GraphQL::Language::Parser qw/parse/;
 use GraphQL::Validator qw/validate/;
 use GraphQL::Error qw/format_error/;

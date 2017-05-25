@@ -118,10 +118,9 @@ mutation M {
 EOQ
 
     my $result = execute($schema, parse($doc), Root->new(6));
-
     is_deeply $result->{data}, {
         first => { theNumber => 1 },
-        third => undef,
+        third => undef, # null
         fifth => { theNumber => 5 },
     };
     is scalar(@{ $result->{errors} }), 1;

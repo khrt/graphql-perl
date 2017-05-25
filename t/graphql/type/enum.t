@@ -6,8 +6,7 @@ use DDP;
 use Test::More;
 use Test::Deep;
 
-use GraphQL qw/graphql/;
-use GraphQL::Type qw/:all/;
+use GraphQL qw/graphql :types/;
 
 my $ColorType = GraphQLEnumType(
     name => 'Color',
@@ -336,7 +335,6 @@ subtest 'may be internally represented with complex values' => sub {
         good: complexEnum(provideGoodValue: true)
         bad: complexEnum(provideBadValue: true)
     }');
-    p $result;
     cmp_deeply $result, {
         data => {
             first => 'ONE',
@@ -344,10 +342,10 @@ subtest 'may be internally represented with complex values' => sub {
             good => 'TWO',
             bad => undef,
         },
-        errors => [superhashof({
+        errors => [noclass(superhashof({
             message => 'Expected a value of type "Complex" but received: HASH',
             locations => [{ line => 5, column => 9 }]
-        })]
+        }))]
     };
 };
 

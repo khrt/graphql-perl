@@ -1,6 +1,6 @@
 # NAME
 
-GraphQL - A Perl implementation of [GraphQL](http://graphql.org/).
+GraphQL - A Perl port of the reference implementation of [GraphQL](http://graphql.org/).
 
 # SYNOPSIS
 
@@ -15,9 +15,8 @@ GraphQL - A Perl implementation of [GraphQL](http://graphql.org/).
 
 # DESCRIPTION
 
-graphql-perl is a port of a [reference GraphQL implementation](https://github.com/graphql/graphql-js)
-implements GraphQL types, parser, validation and execution need to build
-GraphQL schema and execute GraphQL queries.
+GraphQL is a port of the [reference GraphQL implementation](https://github.com/graphql/graphql-js)
+implements GraphQL types, parser, validation, execution, and introspection.
 
 # TYPES
 
@@ -193,6 +192,14 @@ they define the entry point of every GraphQL query.
     );
 
 [GraphQL::Type::Schema](https://metacpan.org/pod/GraphQL::Type::Schema).
+
+# INTROSPECTION
+
+[GraphQL::Type::Introspection](https://metacpan.org/pod/GraphQL::Type::Introspection).
+
+# LIMITATIONS
+
+`Boolean`, `NULL`.
 
 # EXAMPLES
 

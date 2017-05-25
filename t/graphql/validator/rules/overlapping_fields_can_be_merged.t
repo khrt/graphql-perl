@@ -11,8 +11,6 @@ use harness qw/
     expect_fails_rule
 /;
 
-use GraphQL::Type qw/:all/;
-
 subtest 'unique fields' => sub {
     expect_passes_rule('OverlappingFieldsCanBeMerged', '
       fragment uniqueFields on Dog {
