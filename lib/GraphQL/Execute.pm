@@ -602,7 +602,7 @@ sub complete_value {
 
     # If result value is null-ish (null, undefined, or NaN) then return null.
     unless ($result) {
-        say 'NULLISH';
+        warn 'NULLISH';
         return NULLISH; # null
     }
 
@@ -725,11 +725,12 @@ sub complete_leaf_value {
 sub complete_abstract_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
-    # print 'abs rettyp '; p $return_type;
+    # print 'cav result '; p $result;
+    # print 'cav rettyp '; p $return_type;
     my $runtime_type = $return_type->resolve_type
         ? $return_type->resolve_type->($result, $exe_context->{context_value}, $info)
         : default_resolve_type_fn($result, $exe_context->{context_value}, $info, $return_type);
-    # print 'abs runtyp '; p $runtime_type;
+    # print 'cav runtyp '; p $runtime_type;
 
     return complete_object_value(
         $exe_context,
@@ -782,6 +783,19 @@ sub ensure_valid_runtime_type {
 # Complete an Object value by executing all sub-selections.
 sub complete_object_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
+    # p $exe_context;
+    # say ' --- ';
+    # p $return_type;
+    # say ' --- ';
+    # p $field_nodes;
+    # warn scalar @$field_nodes;
+    # say ' --- ';
+    # p $info;
+    # say ' --- ';
+    # p $path;
+    # say ' --- ';
+    # p $result;
+    # say ' --- ';
 
     # If there is an is_type_of predicate function, call it with the
     # current result. If is_type_of returns false, then raise an error rather
@@ -789,7 +803,6 @@ sub complete_object_value {
     if ($return_type->is_type_of) {
         my $is_type_of =
             $return_type->is_type_of->($result, $exe_context->{context_value}, $info);
-        # print 'cov itf '; p $is_type_of;
 
         if (!$is_type_of) {
             die invalid_return_type_error($return_type, $result, $field_nodes);
@@ -897,9 +910,7 @@ sub get_field_def {
     {
         return TypeMetaFieldDef;
     }
-    elsif ($field_name eq TypeNameMetaFieldDef->{name}
-        && $schema->get_query_type == $parent_type)
-    {
+    elsif ($field_name eq TypeNameMetaFieldDef->{name}) {
         return TypeNameMetaFieldDef;
     }
 
@@ -914,6 +925,7 @@ sub response_path_as_array {
     my @flattened;
     my $curr = $path;
 
+    # print 'response path as array '; p $curr;
     # while (@$curr) {
     #     push @flattened, $curr->{key};
     #     $curr = $curr->prev;
@@ -923,8 +935,11 @@ sub response_path_as_array {
 }
 
 sub add_path {
-    my ($path, $index) = @_;
-    return;
+    my ($prev, $key) = @_;
+    return {
+        prev => $prev,
+        key => $key,
+    };
 }
 
 1;

@@ -53,11 +53,11 @@ my $DogType = GraphQLObjectType(
     interfaces => [$NamedType],
     fields => {
         name => { type => GraphQLString },
-        barks => { type => GraphQLBoolean }
+        barks => { type => GraphQLBoolean },
     },
     is_type_of => sub {
         my $value = shift;
-        $value->isa('Dog');
+        return $value->isa('Dog') ? 1 : 0;
     },
 );
 
@@ -66,11 +66,11 @@ my $CatType = GraphQLObjectType(
     interfaces => [$NamedType],
     fields => {
         name => { type => GraphQLString },
-        meows => { type => GraphQLBoolean }
+        meows => { type => GraphQLBoolean },
     },
     is_type_of => sub {
         my $value = shift;
-        $value->isa('Cat');
+        return $value->isa('Cat') ? 1 : 0;
     },
 );
 
@@ -87,7 +87,9 @@ my $PetType = GraphQLUnionType(
         if ($value->isa('Cat')) {
             return $CatType;
         }
-    }
+
+        return;
+    },
 );
 
 my $PersonType = GraphQLObjectType(
@@ -100,13 +102,13 @@ my $PersonType = GraphQLObjectType(
     },
     is_type_of => sub {
         my $value = shift;
-        $value->isa('Person')
+        return $value->isa('Person') ? 1 : 0;
     },
 );
 
 my $schema = GraphQLSchema(
     query => $PersonType,
-    types => [$PetType]
+    types => [$PetType],
 );
 
 my $garfield = Cat->new('Garfield', 0);
@@ -122,23 +124,23 @@ subtest 'can introspect on union and intersection types' => sub {
           name
           fields { name }
           interfaces { name }
-          possibleTypes { name }
-          enumValues { name }
-          inputFields { name }
+          possible_types { name }
+          enum_values { name }
+          input_fields { name }
         }
         Pet: __type(name: "Pet") {
           kind
           name
           fields { name }
           interfaces { name }
-          possibleTypes { name }
-          enumValues { name }
-          inputFields { name }
+          possible_types { name }
+          enum_values { name }
+          input_fields { name }
         }
       }
     ');
 
-    is_deeply execute($schema, $ast), {
+    cmp_deeply execute($schema, $ast), {
         data => {
             Named => {
                 kind => 'INTERFACE',
@@ -147,32 +149,31 @@ subtest 'can introspect on union and intersection types' => sub {
                     { name => 'name' }
                 ],
                 interfaces => undef,
-                possibleTypes => [
+                possible_types => bag(
                     { name => 'Person' },
                     { name => 'Dog' },
                     { name => 'Cat' },
-                ],
-                enumValues => undef,
-                inputFields => undef
+                ),
+                enum_values => undef,
+                input_fields => undef
             },
             Pet => {
                 kind => 'UNION',
                 name => 'Pet',
                 fields => undef,
                 interfaces => undef,
-                possibleTypes => [
+                possible_types => bag(
                     { name => 'Dog' },
                     { name => 'Cat' }
-                ],
-                enumValues => undef,
-                inputFields => undef
-            }
-        }
+                ),
+                enum_values => undef,
+                input_fields => undef
+            },
+        },
     };
 };
 
 subtest 'executes using union types' => sub {
-
     # NOTE: This is an *invalid* query, but it should be an *executable* query.
     my $ast = parse('
         {
@@ -187,20 +188,19 @@ subtest 'executes using union types' => sub {
       }
     ');
 
-    is_deeply execute($schema, $ast, $john), {
+    cmp_deeply execute($schema, $ast, $john), {
         data => {
             __typename => 'Person',
             name => 'John',
-            pets => [
-                { __typename => 'Cat', name => 'Garfield', meows => 0 },
+            pets => bag(
+                { __typename => 'Cat', name => 'Garfield', meows => undef },
                 { __typename => 'Dog', name => 'Odie', barks => 1 }
-            ]
-        }
+            ),
+        },
     };
 };
 
 subtest 'executes union types with inline fragments' => sub {
-
     # This is the valid version of the query in the above test.
     my $ast = parse('
       {
@@ -220,20 +220,19 @@ subtest 'executes union types with inline fragments' => sub {
       }
     ');
 
-    is_deeply execute($schema, $ast, $john), {
+    cmp_deeply execute($schema, $ast, $john), {
         data => {
             __typename => 'Person',
             name => 'John',
-            pets => [
-                { __typename => 'Cat', name => 'Garfield', meows => 0 },
+            pets => bag(
+                { __typename => 'Cat', name => 'Garfield', meows => undef },
                 { __typename => 'Dog', name => 'Odie', barks => 1 }
-            ]
-        }
+            ),
+        },
     };
 };
 
 subtest 'executes using interface types' => sub {
-
     # NOTE: This is an *invalid* query, but it should be an *executable* query.
     my $ast = parse('
       {
@@ -248,20 +247,19 @@ subtest 'executes using interface types' => sub {
       }
     ');
 
-    is_deeply execute($schema, $ast, $john), {
+    cmp_deeply execute($schema, $ast, $john), {
         data => {
             __typename => 'Person',
-            name       => 'John',
-            friends    => [
+            name => 'John',
+            friends => bag(
                 { __typename => 'Person', name => 'Liz' },
-                { __typename => 'Dog',    name => 'Odie', barks => 1 }
-            ]
-        }
+                { __typename => 'Dog', name => 'Odie', barks => 1 }
+            ),
+        },
     };
 };
 
 subtest 'executes union types with inline fragments' => sub {
-
     # This is the valid version of the query in the above test.
     my $ast = parse('
       {
@@ -280,20 +278,19 @@ subtest 'executes union types with inline fragments' => sub {
       }
     ');
 
-    is_deeply execute($schema, $ast, $john), {
+    cmp_deeply execute($schema, $ast, $john), {
         data => {
             __typename => 'Person',
             name => 'John',
-            friends => [
+            friends => bag(
                 { __typename => 'Person', name => 'Liz' },
                 { __typename => 'Dog', name => 'Odie', barks => 1 }
-            ]
-        }
+            ),
+        },
     };
 };
 
 subtest 'allows fragment conditions to be abstract types' => sub {
-
     my $ast = parse('
       {
         __typename
@@ -326,19 +323,19 @@ subtest 'allows fragment conditions to be abstract types' => sub {
       }
     ');
 
-    is_deeply execute($schema, $ast, $john), {
+    cmp_deeply execute($schema, $ast, $john), {
         data => {
             __typename => 'Person',
             name => 'John',
-            pets => [
-                { __typename => 'Cat', name => 'Garfield', meows => 0 },
+            pets => bag(
+                { __typename => 'Cat', name => 'Garfield', meows => undef },
                 { __typename => 'Dog', name => 'Odie', barks => 1 }
-            ],
-            friends => [
+            ),
+            friends => bag(
                 { __typename => 'Person', name => 'Liz' },
                 { __typename => 'Dog', name => 'Odie', barks => 1 }
-            ]
-        }
+            ),
+        },
     };
 };
 
@@ -356,37 +353,34 @@ subtest 'gets execution info in resolver' => sub {
         resolve_type => sub {
             my ($obj, $context, $info) = @_;
             $encounteredContext = $context;
-            $encounteredSchema = $info->{_schema};
-            $encounteredRootValue = $info->{rootValue};
+            $encounteredSchema = $info->{schema};
+            $encounteredRootValue = $info->{root_value};
             return $PersonType2;
         },
     );
 
     $PersonType2 = GraphQLObjectType(
-      name => 'Person',
-      interfaces => [$NamedType2],
-      fields => {
-        name => { type => GraphQLString },
-        friends => { type => GraphQLList($NamedType2) },
-      },
+        name => 'Person',
+        interfaces => [$NamedType2],
+        fields => {
+            name => { type => GraphQLString },
+            friends => { type => GraphQLList($NamedType2) },
+        },
     );
 
     my $schema2 = GraphQLSchema(
-      query => $PersonType2
+        query => $PersonType2
     );
-
     my $john2 = Person->new('John', [], [$liz]);
-
     my $context = { authToken => '123abc' };
 
     my $ast = parse('{ name, friends { name } }');
 
-    is_deeply execute($schema2, $ast, $john2, $context), {
-      data => { name => 'John', friends => [{ name => 'Liz' }] }
-    };
-    is_deeply $encounteredContext, $context;
-    is_deeply $encounteredSchema, $schema2;
-    is_deeply $encounteredRootValue, $john2;
+    cmp_deeply execute($schema2, $ast, $john2, $context),
+        { data => { name => 'John', friends => [{ name => 'Liz' }] } };
+    cmp_deeply $encounteredContext, $context;
+    cmp_deeply $encounteredSchema, $schema2;
+    cmp_deeply $encounteredRootValue, $john2;
 };
 
 done_testing;

@@ -3,6 +3,7 @@ package GraphQL::Type::Enum;
 use strict;
 use warnings;
 
+use GraphQL::Language::Kinds qw/ENUM/;
 use GraphQL::Util qw/assert_valid_name/;
 use GraphQL::Util::Type qw/define_enum_values/;
 
@@ -56,7 +57,7 @@ sub parse_value {
 
 sub parse_literal {
     my ($self, $value_node) = @_;
-    if ($value_node->{kind} eq GraphQL::Language::Parser->ENUM) {
+    if ($value_node->{kind} eq ENUM) {
         my $enum_value = $self->_get_name_lookup->{ $value_node->{value} };
         if ($enum_value) {
             return $enum_value->{value};

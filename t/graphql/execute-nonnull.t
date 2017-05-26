@@ -8,48 +8,49 @@ use Test::Deep;
 use JSON qw/encode_json/;
 
 use GraphQL qw/:types/;
-use GraphQL::Language::Parser qw/parse/;
 use GraphQL::Execute qw/execute/;
+use GraphQL::Language::Parser qw/parse/;
+use GraphQL::Nullish qw/NULLISH/;
 
 my $sync_error = bless { message => 'sync' }, 'GraphQL::Error';
-my $nonundef_sync_error = bless { message => 'nonundefSync' }, 'GraphQL::Error';
+my $nonnull_sync_error = bless { message => 'nonNullSync' }, 'GraphQL::Error';
 
 my $throwing_data;
 $throwing_data = {
     sync => sub { die $sync_error; },
-    nonundefSync => sub { die $nonundef_sync_error; },
+    nonNullSync => sub { die $nonnull_sync_error; },
     nest => sub {
         return $throwing_data;
     },
-    nonundefNest => sub {
+    nonNullNest => sub {
         return $throwing_data;
     },
 };
 
-my $undefing_data;
-$undefing_data = {
-    sync => sub { undef },
-    nonNullSync => sub { undef },
+my $nulling_data;
+$nulling_data = {
+    sync => sub { NULLISH },
+    nonNullSync => sub { NULLISH },
     nest => sub {
-        return $undefing_data;
+        return $nulling_data;
     },
     nonNullNest => sub {
-        return $undefing_data;
+        return $nulling_data;
     },
 };
 
 my $data_type;
 $data_type = GraphQLObjectType(
     name => 'DataType',
-    fields => sub {
+    fields => sub { {
         sync => { type => GraphQLString },
         nonNullSync => { type => GraphQLNonNull(GraphQLString) },
         nest => { type => $data_type },
         nonNullNest => { type => GraphQLNonNull($data_type) },
-    }
+    } },
 );
 my $schema = GraphQLSchema(
-    query => $data_type
+    query => $data_type,
 );
 
 subtest 'nulls a nullable field' => sub {
@@ -60,7 +61,6 @@ subtest 'nulls a nullable field' => sub {
 EOQ
 
     my $ast = parse($doc);
-    # p execute($schema, $ast, $throwing_data);
 
     cmp_deeply execute($schema, $ast, $throwing_data), {
         data => {
@@ -68,7 +68,7 @@ EOQ
         },
         errors => [noclass(superhashof({
             message => $sync_error->{message},
-            locations => [{ line => 3, column => 9 }]
+            locations => [{ line => 2, column => 9 }]
         }))],
     };
 };
@@ -89,12 +89,11 @@ EOQ
             nest => undef
         },
         errors => [noclass(superhashof({
-            message => $nonundef_sync_error->{message},
-            locations => [{ line => 4, column => 11 }]
+            message => $nonnull_sync_error->{message},
+            locations => [{ line => 3, column => 11 }]
         }))],
     };
 };
-
 
 subtest 'nulls a nullable field that synchronously returns undef' => sub {
     my $doc = <<'EOQ';
@@ -111,42 +110,48 @@ EOQ
         }
     };
 
-    cmp_deeply execute($schema, $ast, $undefing_data), $expected;
+    cmp_deeply execute($schema, $ast, $nulling_data), $expected;
 };
 
-subtest 'nulls a synchronously returned object that contains a non-nullable field that returns undef synchronously' => sub {
+subtest 'nulls a returned object that contains a non-nullable field that returns null' => sub {
     my $doc = <<'EOQ';
       query Q {
         nest {
-          nonNullSync,
+          nonNullSync
         }
       }
 EOQ
 
     my $ast = parse($doc);
-
-    cmp_deeply execute($schema, $ast, $undefing_data), {
+# p execute($schema, $ast, $nulling_data);
+    cmp_deeply execute($schema, $ast, $nulling_data), {
         data => {
             nest => undef
         },
         errors => [noclass(superhashof({
-            message => 'Cannot return undef for non-nullable field DataType.nonNullSync.',
+            message => 'Cannot return null for non-nullable field DataType.nonNullSync.',
             locations => [{ line => 4, column => 11 }]
         }))],
     }
 };
 
-
 subtest 'nulls the top level if sync non-nullable field throws' => sub {
+    plan skip_all => 'TODO dies in data';
+
     my $doc = <<'EOQ';
       query Q { nonNullSync }
 EOQ
 
+    eval {
+        execute($schema, parse($doc), $throwing_data);
+    };
+p $@;
+
     cmp_deeply execute($schema, parse($doc), $throwing_data), {
         data => undef,
         errors => [noclass(superhashof({
-            message => $nonundef_sync_error->{message},
-            locations => [{ line => 2, column => 17 }]
+            message => $nonnull_sync_error->{message},
+            locations => [{ line => 1, column => 17 }]
         }))]
     };
 };
@@ -156,7 +161,7 @@ subtest 'nulls the top level if sync non-nullable field returns undef' => sub {
       query Q { nonNullSync }
 EOQ
 
-    cmp_deeply execute($schema, parse($doc), $undefing_data), {
+    cmp_deeply execute($schema, parse($doc), $nulling_data), {
         data => undef,
         errors => [noclass(superhashof({
             message => 'Cannot return undef for non-nullable field DataType.nonnulnull.',

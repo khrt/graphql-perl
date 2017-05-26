@@ -97,7 +97,6 @@ sub get_enum_value {
     return $self->{_enum_value};
 }
 
-# Flow doesn't yet handle this case.
 sub enter {
     my ($self, $node) = @_;
     my $schema = $self->schema;

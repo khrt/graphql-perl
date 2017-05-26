@@ -549,6 +549,8 @@ sub TypeNameMetaFieldDef {
         args => [],
         resolve => sub {
             my ($source, $args, $context, $info) = @_;
+            # use Carp 'longmess';
+            # warn longmess '__typename ';
             return $info->{parent_type}->name;
         },
     }
