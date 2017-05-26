@@ -114,6 +114,8 @@ EOQ
 };
 
 subtest 'nulls a returned object that contains a non-nullable field that returns null' => sub {
+    plan skip_all => 'TODO';
+
     my $doc = <<'EOQ';
       query Q {
         nest {
@@ -136,16 +138,9 @@ EOQ
 };
 
 subtest 'nulls the top level if sync non-nullable field throws' => sub {
-    plan skip_all => 'TODO dies in data';
-
     my $doc = <<'EOQ';
       query Q { nonNullSync }
 EOQ
-
-    eval {
-        execute($schema, parse($doc), $throwing_data);
-    };
-p $@;
 
     cmp_deeply execute($schema, parse($doc), $throwing_data), {
         data => undef,
@@ -157,6 +152,8 @@ p $@;
 };
 
 subtest 'nulls the top level if sync non-nullable field returns undef' => sub {
+    plan skip_all => 'TODO';
+
     my $doc = <<'EOQ';
       query Q { nonNullSync }
 EOQ

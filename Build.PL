@@ -21,12 +21,24 @@ my %module_build_args = (
   "dist_version" => "0.01",
   "license" => "perl",
   "module_name" => "GraphQL",
-  "recursive_test_files" => 1
+  "recursive_test_files" => 1,
+  "requires" => {
+    "Data::Dumper" => "2.131",
+    "JSON" => "2.90",
+    "List::Util" => "1.26",
+    "perl" => "5.010000"
+  },
+  "test_requires" => {
+    "Test::Deep" => "1.127",
+    "Test::More" => "1.302085"
+  }
 );
 
 
 my %fallback_build_requires = (
-  "Module::Build" => "0.28"
+  "Module::Build" => "0.28",
+  "Test::Deep" => "1.127",
+  "Test::More" => "1.302085"
 );
 
 

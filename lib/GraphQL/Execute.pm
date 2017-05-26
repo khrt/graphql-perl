@@ -186,7 +186,17 @@ sub execute_operation {
     # print 'eo fields '; p $fields;
 
     my $path;
-    return execute_fields($exe_context, $type, $root_value, $path, $fields);
+
+    my $result = eval {
+        execute_fields($exe_context, $type, $root_value, $path, $fields);
+    };
+
+    if (my $e = $@) {
+        push @{ $exe_context->{errors} }, $e;
+        return;
+    };
+
+    return $result;
 }
 
 # Extracts the root type of the operation from the schema.
