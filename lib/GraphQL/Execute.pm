@@ -673,8 +673,12 @@ sub complete_list_value {
     my ($exe_context, $return_type, $field_nodes, $info, $path, $result) = @_;
 
     # print 'clv result '; p $result;
-    die "Expected Iterable, but did not find one for field $info->{parent_type}{name}.$info->{field_name}."
-        if ref($result) ne 'ARRAY';
+    if (ref($result) ne 'ARRAY') {
+        die GraphQLError(
+            "Expected Iterable, but did not find one for field $info->{parent_type}{name}.$info->{field_name}.\n",
+            $field_nodes
+        );
+    }
 
     my $item_type = $return_type->of_type;
     my @completed_results;
