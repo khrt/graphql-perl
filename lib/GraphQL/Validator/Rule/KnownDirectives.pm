@@ -3,7 +3,7 @@ package GraphQL::Validator::Rule::KnownDirectives;
 use strict;
 use warnings;
 
-use List::Util qw/none/;
+use List::Util qw/reduce/;
 
 use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Type::Directive;
@@ -58,7 +58,7 @@ sub validate {
                     )
                 );
             }
-            elsif (none { $_ eq $candidate_location } @{ $directive_def->{locations} }) {
+            elsif (reduce { $a && !($b eq $candidate_location) } 1, @{ $directive_def->{locations} }) {
                 $context->report_error(
                     GraphQLError(
                         misplaced_directive_message($node->{name}{value}, $candidate_location),

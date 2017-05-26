@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use DDP;
-use List::Util qw/all reduce/;
+use List::Util qw/reduce/;
 
 use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Language::Parser;
@@ -568,13 +568,13 @@ sub same_arguments {
 
     return if scalar(@$arguments1) != scalar(@$arguments2);
 
-    return all {
-        my $arg1 = $_;
+    return reduce {
+        my $arg1 = $b;
         my $arg2 = find(
             $arguments2, sub { $_[0]->{name}{value} eq $arg1->{name}{value} }
         );
-        $arg2 && same_value($arg1->{value}, $arg2->{value});
-    } @$arguments1;
+        $a && ($arg2 && same_value($arg1->{value}, $arg2->{value}));
+    } 1, @$arguments1;
 }
 
 sub same_value {

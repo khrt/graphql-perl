@@ -3,7 +3,7 @@ package GraphQL::Util::TypeComparators;
 use strict;
 use warnings;
 
-use List::Util qw/any/;
+use List::Util qw/reduce/;
 use Exporter qw/import/;
 
 use GraphQL::Util::Type qw/
@@ -56,8 +56,8 @@ sub do_types_overlap {
         if (is_abstract_type($type_b)) {
             # If both types are abstract, then determine if there is any intersection
             # between possible concrete types of each.
-            return any { $schema->is_possible_type($type_b, $_) }
-                @{ $schema->get_possible_types($type_a) };
+            return reduce { $a || $schema->is_possible_type($type_b, $b) }
+                0, @{ $schema->get_possible_types($type_a) };
         }
 
         # Determine if the latter type is a possible concrete type of the former.
