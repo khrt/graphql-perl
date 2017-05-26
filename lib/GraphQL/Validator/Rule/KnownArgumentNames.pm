@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
 use GraphQL::Util qw/
     stringify_type
@@ -11,8 +12,6 @@ use GraphQL::Util qw/
     suggestion_list
     quoted_or_list
 /;
-
-sub Kind { 'GraphQL::Language::Parser' }
 
 sub unknown_arg_message {
     my ($arg_name, $field_name, $type, $suggested_args) = @_;

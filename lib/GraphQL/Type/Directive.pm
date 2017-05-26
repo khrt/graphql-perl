@@ -28,9 +28,6 @@ use constant {
 
 # use Exporter qw/import/;
 
-use GraphQL::Util qw/assert_valid_name/;
-use GraphQL::Util::Type qw/is_input_type/;
-
 # our @EXPORT_OK = qw/
 #     QUERY
 #     MUTATION
@@ -75,6 +72,9 @@ use GraphQL::Util::Type qw/is_input_type/;
 #     /],
 # );
 
+use GraphQL::Util qw/assert_valid_name/;
+use GraphQL::Util::Type qw/is_input_type/;
+
 sub name { shift->{name} }
 sub description { shift->{description} }
 sub locations { shift->{locations} }
@@ -106,8 +106,8 @@ sub new {
             assert_valid_name($arg_name);
 
             my $arg = $args->{ $arg_name };
-            die   "\@$config{name}($arg_name:) argument type must be "
-                . "Input Type but got: ${ \$arg->{type}->to_string }.\n" unless is_input_type($arg->{type});
+            die "\@$config{name}($arg_name:) argument type must be "
+              . "Input Type but got: ${ \$arg->{type}->to_string }.\n" unless is_input_type($arg->{type});
 
             push @{ $self->{args} }, {
                 name => $arg_name,

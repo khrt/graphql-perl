@@ -4,9 +4,8 @@ use strict;
 use warnings;
 
 use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
-
-sub Kind { 'GraphQL::Language::Parser' }
 
 sub anon_operation_not_alone_message {
     return 'This anonymous operation must be the only defined operation.';

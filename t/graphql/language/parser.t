@@ -18,13 +18,12 @@ use Test::Deep;
 use Test::More;
 use FindBin '$Bin';
 
-use GraphQL::Language::Source;
-use GraphQL::Language::Token;
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Lexer;
 use GraphQL::Language::Parser qw/parse parse_value parse_type/;
-
-sub TokenKind { 'GraphQL::Language::Token' }
-sub Kind { 'GraphQL::Language::Parser' }
+use GraphQL::Language::Source;
+use GraphQL::Language::Token qw/TokenKind/;
+use GraphQL::Language::Token;
 
 subtest 'parse provides useful errors' => sub {
     eval { parse('{') };

@@ -8,6 +8,7 @@ use Test::Deep;
 use JSON qw/encode_json/;
 
 use GraphQL qw/graphql :types/;
+use GraphQL::Nullish qw/NULLISH/;
 use GraphQL::Language::Parser qw/parse/;
 use GraphQL::Execute qw/execute/;
 use GraphQL::Util qw/stringify/;
@@ -640,7 +641,7 @@ subtest 'Handles lists and nullability' => sub {
         my $ast = parse($doc);
 
         eval {
-            execute($schema, $ast, undef, undef, { input => GraphQL::Execute::NULLISH });
+            execute($schema, $ast, undef, undef, { input => NULLISH });
         };
 
         my $e = $@;
@@ -742,7 +743,7 @@ subtest 'Handles lists and nullability' => sub {
         my $ast = parse($doc);
 
         eval {
-            execute($schema, $ast, undef, undef, { input => GraphQL::Execute::NULLISH });
+            execute($schema, $ast, undef, undef, { input => NULLISH });
         };
         my $e = $@;
 

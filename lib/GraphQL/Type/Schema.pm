@@ -174,7 +174,6 @@ sub get_directive {
     return find($self->get_directives, sub { shift->{name} eq $name });
 }
 
-
 ##
 
 sub type_map_reducer {
@@ -309,6 +308,8 @@ sub assert_object_implements_interface {
             }
         }
     }
+
+    return;
 }
 
 1;

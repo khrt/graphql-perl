@@ -13,12 +13,10 @@ use GraphQL::Type::Introspection qw/
     TypeMetaFieldDef
     TypeNameMetaFieldDef
 /;
-
 use GraphQL::Util qw/
     type_from_ast
     find
 /;
-
 use GraphQL::Util::Type qw/
     get_named_type
     get_nullable_type
@@ -26,10 +24,8 @@ use GraphQL::Util::Type qw/
     is_input_type
     is_output_type
 /;
-
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
-
-sub Kind { 'GraphQL::Language::Parser' }
 
 sub schema { shift->{_schema} }
 

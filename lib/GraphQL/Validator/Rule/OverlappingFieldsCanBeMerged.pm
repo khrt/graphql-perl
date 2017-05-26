@@ -7,6 +7,7 @@ use DDP;
 use List::Util qw/reduce/;
 
 use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
 use GraphQL::Language::Printer qw/print_doc/;
 use GraphQL::Util qw/
@@ -16,8 +17,6 @@ use GraphQL::Util qw/
 use GraphQL::Util::Type qw/
     is_leaf_type
 /;
-
-sub Kind { 'GraphQL::Language::Parser' }
 
 sub fields_conflict_message {
     my ($response_name, $reason) = @_;

@@ -34,15 +34,12 @@ our @EXPORT_OK = (qw/
     is_collection
 /);
 
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
 use GraphQL::Language::Printer qw/print_doc/;
+use GraphQL::Nullish qw/NULLISH/;
 
-use GraphQL::Execute; # TODO DO NOT
-# use GraphQL::Type qw/:all/;
-
-sub Kind { 'GraphQL::Language::Parser' }
-
-# Ensures consoles warnigns are only issued once.
+# Ensures consoles warnings are only issued once.
 our $has_warned_about_dunder;
 
 sub assert_valid_name {
@@ -104,7 +101,7 @@ sub is_valid_js_value {
 
     # A value must be provided if the type is non-null.
     if ($type->isa('GraphQL::Type::NonNull')) {
-        if (!$value || (ref($value) && $value == GraphQL::Execute::NULLISH)) {
+        if (!$value || (ref($value) && $value == NULLISH)) {
         # unless ($value) {
             return [qq`Expected "${ stringify_type($type) }", found null.`];
         }
@@ -293,9 +290,9 @@ sub stringify {
     my $value = shift;
     return
         ref($value)
-        && $value == GraphQL::Execute::NULLISH ? 'null'
-        : ref($value)                          ? encode_json($value)
-        :                                        qq'"$value"';
+        && $value == NULLISH ? 'null'
+        : ref($value)        ? encode_json($value)
+        :                      qq'"$value"';
 }
 
 # Given an invalid input string and a list of valid options, returns a filtered

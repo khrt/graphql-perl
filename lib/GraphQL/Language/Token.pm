@@ -29,20 +29,60 @@ use constant {
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
-    SOF EOF BANG DOLLAR PAREN_L PAREN_R SPREAD COLON EQUALS AT
-    BRACKET_L BRACKET_R BRACE_L PIPE BRACE_R NAME INT FLOAT STRING COMMENT
+    TokenKind
+
+    SOF
+    EOF
+    BANG
+    DOLLAR
+    PAREN_L
+    PAREN_R
+    SPREAD
+    COLON
+    EQUALS
+    AT
+    BRACKET_L
+    BRACKET_R
+    BRACE_L
+    PIPE
+    BRACE_R
+    NAME
+    INT
+    FLOAT
+    STRING
+    COMMENT
 /);
 
 our %EXPORT_TAGS = (
     kinds => [qw/
-        SOF EOF BANG DOLLAR PAREN_L PAREN_R SPREAD COLON EQUALS AT
-        BRACKET_L BRACKET_R BRACE_L PIPE BRACE_R NAME INT FLOAT STRING COMMENT
+        SOF
+        EOF
+        BANG
+        DOLLAR
+        PAREN_L
+        PAREN_R
+        SPREAD
+        COLON
+        EQUALS
+        AT
+        BRACKET_L
+        BRACKET_R
+        BRACE_L
+        PIPE
+        BRACE_R
+        NAME
+        INT
+        FLOAT
+        STRING
+        COMMENT
     /],
 );
 
+sub TokenKind { __PACKAGE__ }
+
 sub new {
     my ($class, %args) = @_;
-    bless {
+    return bless {
         # The kind of Token.
         kind => undef,
 
@@ -96,7 +136,7 @@ sub inspect {
 
 sub desc {
     my $self = shift;
-    return $self->value ? "$self->{kind} \"$self->{value}\"" : $self->kind;
+    return $self->value ? qq`$self->{kind} "$self->{value}"` : $self->kind;
 }
 
 1;

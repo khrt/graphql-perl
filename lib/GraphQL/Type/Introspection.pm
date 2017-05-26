@@ -3,8 +3,6 @@ package GraphQL::Type::Introspection;
 use strict;
 use warnings;
 
-use DDP;
-
 use constant {
     SCALAR => 'SCALAR',
     OBJECT => 'OBJECT',
@@ -16,6 +14,7 @@ use constant {
     NON_NULL => 'NON_NULL',
 };
 
+use DDP;
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
@@ -167,16 +166,13 @@ sub __Field {
             },
             type => { type => GraphQLNonNull(&__Type) },
             is_deprecated => { type => GraphQLNonNull(GraphQLBoolean) },
-            deprecation_reason => {
-                type => GraphQLString,
-            }
+            deprecation_reason => { type => GraphQLString },
         } },
     );
 }
 
 sub __Type {
-    my $__Type;
-    $__Type = GraphQLObjectType(
+    GraphQLObjectType(
         name => '__Type',
         is_introspection => 1,
         description =>
@@ -250,7 +246,7 @@ sub __Type {
                 },
             },
             interfaces => {
-                type => GraphQLList(GraphQLNonNull($__Type)),
+                type => GraphQLList(GraphQLNonNull(&__Type)),
                 resolve => sub {
                     my ($type) = @_;
                     if ($type->isa('GraphQL::Type::Object')) {
@@ -260,7 +256,7 @@ sub __Type {
                 }
             },
             possible_types => {
-                type => GraphQLList(GraphQLNonNull($__Type)),
+                type => GraphQLList(GraphQLNonNull(&__Type)),
                 resolve => sub {
                     my ($type, $args, $context, $info) = @_;
                     my $schema = $info->{schema};
@@ -307,7 +303,7 @@ sub __Type {
                     return;
                 }
             },
-            of_type => { type => $__Type }
+            of_type => { type => &__Type }
         } },
     );
 }
@@ -438,6 +434,7 @@ sub __Directive {
                 type => GraphQLNonNull(GraphQLBoolean),
                 resolve => sub {
                     my (undef, $d) = @_;
+                    die;
                     $d->locations->indexOf(DirectiveLocation->FRAGMENT_SPREAD) != -1 ||
                     $d->locations->indexOf(DirectiveLocation->INLINE_FRAGMENT) != -1 ||
                     $d->locations->indexOf(DirectiveLocation->FRAGMENT_DEFINITION) != -1;
@@ -448,6 +445,7 @@ sub __Directive {
                 type => GraphQLNonNull(GraphQLBoolean),
                 resolve => sub {
                     my (undef, $d) = @_;
+                    die;
                     $d->locations->indexOf(DirectiveLocation->FIELD) != -1;
                 }
             },

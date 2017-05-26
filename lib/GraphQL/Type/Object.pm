@@ -6,7 +6,6 @@ use warnings;
 use GraphQL::Util qw/assert_valid_name/;
 use GraphQL::Util::Type qw/define_field_map define_interfaces/;
 
-# TODO: Move to BASE type
 sub name { shift->{name} }
 sub is_type_of { shift->{is_type_of} }
 

@@ -3,17 +3,16 @@ package GraphQL::Validator::Rule::KnownDirectives;
 use strict;
 use warnings;
 
+use DDP;
 use List::Util qw/reduce/;
 
 use GraphQL::Error qw/GraphQLError/;
 use GraphQL::Type::Directive;
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
 use GraphQL::Util qw/find/;
 
-use DDP;
-
 sub DirectiveLocation { 'GraphQL::Type::Directive' }
-sub Kind { 'GraphQL::Language::Parser' }
 
 sub unknown_directive_message {
     my $directive_name = shift;

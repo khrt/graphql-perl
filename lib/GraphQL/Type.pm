@@ -3,8 +3,17 @@ package GraphQL::Type;
 use strict;
 use warnings;
 
-use POSIX qw/ceil floor/;
+use constant {
+    # As per the GraphQL Spec, Integers are only treated as valid when a valid
+    # 32-bit signed integer, providing the broadest support across platforms.
+    #
+    # n.b. JavaScript's integers are safe between -(2^53 - 1) and 2^53 - 1 because
+    # they are internally represented as IEEE 754 doubles.
+    MIN_INT => -2147483648,
+    MAX_INT => 2147483647,
+};
 
+use POSIX qw/ceil floor/;
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
@@ -71,19 +80,8 @@ use GraphQL::Type::Object;
 use GraphQL::Type::Scalar;
 use GraphQL::Type::Union;
 
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
-
-use constant {
-    # As per the GraphQL Spec, Integers are only treated as valid when a valid
-    # 32-bit signed integer, providing the broadest support across platforms.
-    #
-    # n.b. JavaScript's integers are safe between -(2^53 - 1) and 2^53 - 1 because
-    # they are internally represented as IEEE 754 doubles.
-    MIN_INT => -2147483648,
-    MAX_INT => 2147483647,
-};
-
-sub Kind { 'GraphQL::Language::Parser' }
 
 # Base types
 sub GraphQLSchema {

@@ -25,7 +25,6 @@ sub to_string {
 sub to_json { shift->to_string }
 sub inspect { shift->to_string }
 
-
 1;
 
 __END__

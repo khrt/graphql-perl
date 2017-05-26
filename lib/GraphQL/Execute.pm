@@ -3,10 +3,6 @@ package GraphQL::Execute;
 use strict;
 use warnings;
 
-use constant {
-    NULLISH => {},
-};
-
 use Exporter qw/import/;
 
 our @EXPORT_OK = (qw/
@@ -35,7 +31,7 @@ use DDP {
         'GraphQL::Type::Object'      => sub { shift->to_string },
         'GraphQL::Type::Scalar'      => sub { shift->to_string },
         'GraphQL::Type::Union'       => sub { shift->to_string },
-        },
+    },
     caller_info => 0,
 };
 use List::Util qw/reduce/;
@@ -45,8 +41,14 @@ use GraphQL::Error qw/
     located_error
     GraphQLError
 /;
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
-use GraphQL::Type qw/:all/;
+use GraphQL::Nullish qw/NULLISH/;
+use GraphQL::Type qw/
+    GraphQLDeprecatedDirective
+    GraphQLSkipDirective
+    GraphQLIncludeDirective
+/;
 use GraphQL::Type::Introspection qw/
     SchemaMetaFieldDef
     TypeMetaFieldDef
@@ -64,8 +66,6 @@ use GraphQL::Util::Values qw/
     get_variable_values
     get_argument_values
 /;
-
-sub Kind { 'GraphQL::Language::Parser' }
 
 # Implements the "Evaluating requests" section of the GraphQL specification.
 #

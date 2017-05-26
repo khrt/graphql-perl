@@ -16,6 +16,7 @@ use DDP;
 use JSON qw/encode_json/;
 
 use GraphQL::Error qw/GraphQLError/;
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
 use GraphQL::Language::Printer qw/print_doc/;
 use GraphQL::Util qw/
@@ -36,8 +37,6 @@ use GraphQL::Util qw/
 use GraphQL::Util::Type qw/
     is_input_type
 /;
-
-sub Kind { 'GraphQL::Language::Parser' }
 
 sub get_variable_values {
     my ($schema, $var_def_nodes, $inputs) = @_;

@@ -64,6 +64,7 @@ use constant QUERY_DOCUMENT_KEYS => {
     DirectiveDefinition => ['name', 'arguments', 'locations'],
 };
 
+# TODO: move to Nullish, rename Nullish to Constants
 use constant {
     BREAK => {},
     NULL  => {},

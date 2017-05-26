@@ -29,13 +29,12 @@ use DDP {
 };
 use List::Util qw/reduce/;
 
+use GraphQL::Language::Kinds qw/Kind/;
 use GraphQL::Language::Parser;
 use GraphQL::Language::Visitor qw/
     visit
     visit_with_typeinfo
 /;
-
-sub Kind { 'GraphQL::Language::Parser' }
 
 sub new {
     my ($class, %args) = @_;

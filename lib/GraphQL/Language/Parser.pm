@@ -4,91 +4,29 @@ use strict;
 use warnings;
 
 use feature 'say';
-
-use GraphQL::Error qw/syntax_error/;
-use GraphQL::Language::Source;
-use GraphQL::Language::Token;
-use GraphQL::Language::Lexer;
-
-use DDP;# { caller_info => 0, };
+use DDP;
 use Carp 'longmess';
 
 use Exporter qw/import/;
-
 our @EXPORT_OK = (qw/parse parse_value parse_type/);
 
-use constant {
-    # Name
-    NAME => 'Name',
-
-    # Document
-    DOCUMENT => 'Document',
-    OPERATION_DEFINITION => 'OperationDefinition',
-    VARIABLE_DEFINITION => 'VariableDefinition',
-    VARIABLE => 'Variable',
-    SELECTION_SET => 'SelectionSet',
-    FIELD => 'Field',
-    ARGUMENT => 'Argument',
-
-    # Fragments
-    FRAGMENT_SPREAD => 'FragmentSpread',
-    INLINE_FRAGMENT => 'InlineFragment',
-    FRAGMENT_DEFINITION => 'FragmentDefinition',
-
-    # Values
-    INT => 'IntValue',
-    FLOAT => 'FloatValue',
-    STRING => 'StringValue',
-    BOOLEAN => 'BooleanValue',
-    NULL => 'NullValue',
-    ENUM => 'EnumValue',
-    LIST => 'ListValue',
-    OBJECT => 'ObjectValue',
-    OBJECT_FIELD => 'ObjectField',
-
-    # Directives
-    DIRECTIVE => 'Directive',
-
-    # Types
-    NAMED_TYPE => 'NamedType',
-    LIST_TYPE => 'ListType',
-    NON_NULL_TYPE => 'NonNullType',
-
-    # Type System Definitions
-    SCHEMA_DEFINITION => 'SchemaDefinition',
-    OPERATION_TYPE_DEFINITION => 'OperationTypeDefinition',
-
-    # Type Definitions
-    SCALAR_TYPE_DEFINITION => 'ScalarTypeDefinition',
-    OBJECT_TYPE_DEFINITION => 'ObjectTypeDefinition',
-    FIELD_DEFINITION => 'FieldDefinition',
-    INPUT_VALUE_DEFINITION => 'InputValueDefinition',
-    INTERFACE_TYPE_DEFINITION => 'InterfaceTypeDefinition',
-    UNION_TYPE_DEFINITION => 'UnionTypeDefinition',
-    ENUM_TYPE_DEFINITION => 'EnumTypeDefinition',
-    ENUM_VALUE_DEFINITION => 'EnumValueDefinition',
-    INPUT_OBJECT_TYPE_DEFINITION => 'InputObjectTypeDefinition',
-
-    # Type Extensions
-    TYPE_EXTENSION_DEFINITION => 'TypeExtensionDefinition',
-
-    # Directive Definitions
-    DIRECTIVE_DEFINITION => 'DirectiveDefinition',
-};
-
-sub TokenKind { 'GraphQL::Language::Token' }
+use GraphQL::Error qw/syntax_error/;
+use GraphQL::Language::Kinds qw/:all/;
+use GraphQL::Language::Lexer;
+use GraphQL::Language::Source;
+use GraphQL::Language::Token qw/TokenKind/;
 
 # Given a GraphQL source, parses it into a Document.
 # Throws GraphQLError if a syntax error is encountered.
 sub parse {
     my ($source, $options) = @_;
+
     my $source_obj =
-        ref($source)
-        ? $source
-        : GraphQL::Language::Source->new(body => $source);
+        ref($source) ? $source : GraphQL::Language::Source->new(body => $source);
 
     my $lexer =
         GraphQL::Language::Lexer->new(source => $source_obj, options => $options);
+
     return parse_document($lexer);
 }
 
@@ -104,10 +42,7 @@ sub parse_value {
     my ($source, $options) = @_;
 
     my $source_obj =
-        # check if it's a string
-        $source & ~$source
-        ? GraphQL::Language::Source->new(body => $source)
-        : $source;
+        ref($source) ? $source : GraphQL::Language::Source->new(body => $source);
 
     my $lexer =
         GraphQL::Language::Lexer->new(source => $source_obj, options => $options);
@@ -131,10 +66,7 @@ sub parse_type {
     my ($source, $options) = @_;
 
     my $source_obj =
-        # check if it's a string
-        $source & ~$source
-        ? GraphQL::Language::Source->new(body => $source)
-        : $source;
+        ref($source) ? $source : GraphQL::Language::Source->new(body => $source);
 
     my $lexer =
         GraphQL::Language::Lexer->new(source => $source_obj, options => $options);
@@ -157,6 +89,7 @@ sub parse_name {
     };
 }
 
+#
 # Implements the parsing rules in the Document section.
 #
 # Document : Definition+
@@ -197,8 +130,7 @@ sub parse_definition {
 
         if (   $v eq 'query'
             || $v eq 'mutation'
-            || $v eq 'subscription'
-        )
+            || $v eq 'subscription')
         {
             return parse_operation_definition($lexer);
         }

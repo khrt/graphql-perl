@@ -6,7 +6,6 @@ use warnings;
 use GraphQL::Util qw/assert_valid_name/;
 use GraphQL::Util::Type qw/resolve_thunk define_field_map/;
 
-# TODO
 sub name { shift->{name} }
 sub resolve_type { shift->{resolve_type} }
 
