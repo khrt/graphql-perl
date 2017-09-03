@@ -203,7 +203,7 @@ they define the entry point of every GraphQL query.
 
 # EXAMPLES
 
-See _examples_ directory.
+See [tests](https://github.com/khrt/graphql-perl/tree/master/t/graphql) and [harness](https://github.com/khrt/graphql-perl/blob/master/t/harness.pm).
 
 # GITHUB
 
