@@ -1,0 +1,5 @@
+name = "GraphQL"
+
+# badges = ["travis"]
+module_maker="ModuleBuildTiny"
+
