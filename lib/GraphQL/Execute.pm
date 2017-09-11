@@ -599,7 +599,10 @@ sub complete_value {
         );
 
         # if (!$completed) { # null
-        if (!defined($completed)) { # null
+# DRL - change made to support NonNull error propagation
+# DRL       if (!defined($completed)) { # null
+        if (!defined($completed) || $completed == NULLISH) { # null
+             
         # if ($completed && ref($completed) && $completed == NULLISH) {
             die GraphQLError(
                 "Cannot return null for non-nullable field $info->{parent_type}{name}.$info->{field_name}.",
@@ -612,7 +615,8 @@ sub complete_value {
 
     # If result value is null-ish (null, undefined, or NaN) then return null.
     unless ($result) {
-        warn 'NULLISH';
+# DRL quieting warning for intended state
+# DRL        warn 'NULLISH';
         return NULLISH; # null
     }
 
