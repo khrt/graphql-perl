@@ -1061,7 +1061,12 @@ subtest 'identifies deprecated fields'=> sub {
       }
 EOQ
 
-    is_deeply graphql($schema, $request), {
+    my $result;
+    $result = graphql($schema, $request);
+    foreach my $key (qw/fields/){
+        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
+    }
+    is_deeply $result, {
         data => {
             __type => {
                 name => 'TestType',
@@ -1114,7 +1119,12 @@ subtest 'respects the includeDeprecated parameter for fields'=> sub {
       }
 EOQ
 
-    is_deeply graphql($schema, $request), {
+    my $result;
+    $result = graphql($schema, $request);
+    foreach my $key (qw/trueFields falseFields omittedFields/){
+        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
+    }
+    is_deeply $result, {
         data => {
             __type => {
                 name => 'TestType',
@@ -1166,7 +1176,12 @@ subtest 'identifies deprecated enum values'=> sub {
       }
 EOQ
 
-    is_deeply  graphql($schema, $request), {
+    my $result;
+    $result = graphql($schema, $request);
+    foreach my $key (qw/enum_values/){
+        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
+    }
+    is_deeply $result, {
         data => {
             __type => {
                 name => 'TestEnum',
@@ -1229,7 +1244,12 @@ subtest 'respects the includeDeprecated parameter for enum values'=> sub {
       }
 EOQ
 
-    is_deeply graphql($schema, $request), {
+    my $result;
+    $result = graphql($schema, $request);
+    foreach my $key (qw/trueValues falseValues omittedValues/){
+        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
+    }
+    is_deeply $result, {
         data => {
             __type => {
                 name => 'TestEnum',

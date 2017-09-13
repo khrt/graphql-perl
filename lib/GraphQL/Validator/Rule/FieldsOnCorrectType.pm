@@ -19,7 +19,7 @@ sub undefined_field_message {
     my $message = qq`Cannot query field "$field_name" on type "${ stringify_type($type) }".`;
 
     if ($suggested_type_names && @$suggested_type_names) {
-        my $suggestions = quoted_or_list($suggested_type_names);
+        my $suggestions = quoted_or_list([sort @$suggested_type_names]);
         $message .= " Did you mean to use an inline fragment on $suggestions?";
     }
     elsif ($suggested_field_names && @$suggested_field_names) {

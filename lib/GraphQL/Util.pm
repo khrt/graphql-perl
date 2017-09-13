@@ -291,7 +291,7 @@ sub stringify {
     return
         ref($value)
         && $value == NULLISH ? 'null'
-        : ref($value)        ? encode_json($value)
+        : ref($value)        ? JSON->new->canonical(1)->encode($value)
         :                      qq'"$value"';
 }
 
