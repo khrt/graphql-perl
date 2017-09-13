@@ -195,7 +195,7 @@ subtest 'Defined on implementors queried on union' => sub {
         name
       }',
       #TODO: NOTE: ORIG [undefined_field( 'name', 'CatOrDog', ['Being', 'Pet', 'Canine', 'Dog', 'Cat'], [], 3, 9)]
-      [undefined_field( 'name', 'CatOrDog', ['Pet', 'Being', 'Canine', 'Dog', 'Cat'], [], 3, 9)]
+      [undefined_field( 'name', 'CatOrDog', [sort ('Pet', 'Being', 'Canine', 'Dog', 'Cat')], [], 3, 9)]
     );
 };
 

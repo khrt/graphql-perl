@@ -4,11 +4,12 @@ use warnings;
 
 use Test::More;
 use Test::Deep;
-use JSON qw/encode_json/;
 
-use GraphQL qw/graphql :types/;
+use GraphQL qw/:types/;
 use GraphQL::Language::Parser qw/parse/;
-use GraphQL::Execute qw/execute/;
+
+use lib "t/lib";
+use test_helper qw/graphql execute encode_json/;
 
 sub testSchema {
     my $testField = shift;
@@ -103,7 +104,7 @@ subtest 'uses provided resolve function' => sub {
     };
 
     is_deeply graphql($schema, '{ test(aInt: -123, aStr: "String!") }', 'Source!'), {
-        data => { test => '["Source!",{"aStr":"String!","aInt":-123}]' }
+        data => { test => '["Source!",{"aInt":-123,"aStr":"String!"}]' }
     };
 };
 

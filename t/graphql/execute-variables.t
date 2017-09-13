@@ -5,13 +5,14 @@ use warnings;
 use DDP;
 use Test::More;
 use Test::Deep;
-use JSON qw/encode_json/;
 
-use GraphQL qw/graphql :types/;
+use GraphQL qw/:types/;
 use GraphQL::Nullish qw/NULLISH/;
 use GraphQL::Language::Parser qw/parse/;
-use GraphQL::Execute qw/execute/;
 use GraphQL::Util qw/stringify/;
+
+use lib "t/lib";
+use test_helper qw/graphql execute encode_json/;
 
 my $TestComplexScalar = GraphQLScalarType(
     name => 'ComplexScalar',
@@ -362,10 +363,13 @@ EOQ
             # NOTE: Flunky because of unordered hashes
             cmp_deeply $e, noclass(superhashof({
                 locations => [{ line => 2, column => 19 }],
-                message => qq'Variable "\$input" got invalid value ${ \encode_json($params->{input}) }.'
-                    . qq'\nIn field "nb": Expected "String!", found null.'
-                    . qq'\nIn field "na": In field "c": Expected "String!", found null.'
             }));
+
+            my $err_msgs = [sort split("\n", $e->{message})];
+            is_deeply $err_msgs, [qq'In field "na": In field "c": Expected "String!", found null.',
+                qq'In field "nb": Expected "String!", found null.',
+                qq'Variable "\$input" got invalid value ${ \encode_json($params->{input}) }.'];
+
         };
 
         subtest 'errors on addition of unknown input field' => sub {

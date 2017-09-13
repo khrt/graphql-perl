@@ -177,7 +177,7 @@ subtest 'defines an enum type with a value of `null` and `undefined`' => sub {
         },
     );
 
-    is_deeply $EnumTypeWithNullishValue->get_values, [
+    is_deeply [sort {$a->{name} cmp $b->{name}} @{$EnumTypeWithNullishValue->get_values}], [sort {$a->{name} cmp $b->{name}} (
         {
             name               => 'NULL',
             description        => undef,
@@ -192,7 +192,7 @@ subtest 'defines an enum type with a value of `null` and `undefined`' => sub {
             deprecation_reason => undef,
             value              => 'UNDEFINED', # XXX WAS value: undefined
         },
-    ];
+    )];
 };
 
 subtest 'defines an object type with deprecated field' => sub {
