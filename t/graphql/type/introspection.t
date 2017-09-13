@@ -1061,12 +1061,7 @@ subtest 'identifies deprecated fields'=> sub {
       }
 EOQ
 
-    my $result;
-    $result = graphql($schema, $request);
-    foreach my $key (qw/fields/){
-        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
-    }
-    is_deeply $result, {
+    is_deeply sort_keys( graphql( $schema, $request ), [qw/fields/] ), {
         data => {
             __type => {
                 name => 'TestType',
@@ -1119,12 +1114,7 @@ subtest 'respects the includeDeprecated parameter for fields'=> sub {
       }
 EOQ
 
-    my $result;
-    $result = graphql($schema, $request);
-    foreach my $key (qw/trueFields falseFields omittedFields/){
-        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
-    }
-    is_deeply $result, {
+    is_deeply sort_keys( graphql( $schema, $request ), [qw/trueFields falseFields omittedFields/] ), {
         data => {
             __type => {
                 name => 'TestType',
@@ -1176,12 +1166,7 @@ subtest 'identifies deprecated enum values'=> sub {
       }
 EOQ
 
-    my $result;
-    $result = graphql($schema, $request);
-    foreach my $key (qw/enum_values/){
-        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
-    }
-    is_deeply $result, {
+    is_deeply sort_keys( graphql( $schema, $request ), [qw/enum_values/] ), {
         data => {
             __type => {
                 name => 'TestEnum',
@@ -1244,12 +1229,7 @@ subtest 'respects the includeDeprecated parameter for enum values'=> sub {
       }
 EOQ
 
-    my $result;
-    $result = graphql($schema, $request);
-    foreach my $key (qw/trueValues falseValues omittedValues/){
-        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
-    }
-    is_deeply $result, {
+    is_deeply sort_keys( graphql( $schema, $request ), [qw/trueValues falseValues omittedValues/] ), {
         data => {
             __type => {
                 name => 'TestEnum',
@@ -1420,3 +1400,13 @@ EOQ
 };
 
 done_testing;
+
+sub sort_keys {
+    my($result, $keys) = @_;
+
+    foreach my $key (@$keys){
+        $result->{data}->{__type}->{$key} = [sort {$b->{name} cmp $a->{name}} @{$result->{data}->{__type}->{$key}}];
+    }
+
+    return $result;
+}
