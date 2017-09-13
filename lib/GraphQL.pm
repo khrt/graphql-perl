@@ -67,7 +67,7 @@ use GraphQL::Language::Source;
 use GraphQL::Type qw/:all/;
 use GraphQL::Validator qw/validate/;
 
-our $VERSION = 0.02;
+our $VERSION = 0.01;
 
 sub graphql {
     my ($schema, $request, $root_value, $context, $variable_values, $operation_name) = @_;
